@@ -1,0 +1,36 @@
+<!DOCTYPE HTML>
+<html >
+<head>
+    <meta charset="utf-8">
+    <title>Cocos2d-HTML5 Test Cases</title>
+    <script src="cocos2d-js-v3.10.js" charset="UTF-8"></script>
+    <link rel="icon" type="image/GIF" href="res/favicon.ico"/>
+	<style>
+		html,body,div{
+			background-color: black !important;
+		}
+		body{
+			text-align: center;
+		}
+	</style>
+</head>
+<body>
+	<canvas id="gameCanvas" width="800" height="450"></canvas>
+	<script type="text/javascript">
+		window.onload=function(){
+			cc.game.onStart = function(){
+				cc.loader.resPath="res";
+				cc.LoaderScene.preload(g_resources, function () {
+						var gameInst=gCore.GameTop.gameMain();
+						var mainScene=gameInst.getModule("viewModule").mainScene;
+						cc.director.runScene(mainScene);
+						gameInst.getModule("viewModule").reRender();
+						gameInst.getModule("modelModule").runGame();
+						gameTest.init(gameInst);
+						}, this);
+			};
+			cc.game.run("gameCanvas");
+		}
+	</script>
+</body>
+</html>
