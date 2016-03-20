@@ -2,7 +2,7 @@
 <html >
 <head>
     <meta charset="utf-8">
-    <title>Cocos2d-HTML5 Test Cases</title>
+    <title>A Moving Game</title>
     <script src="/lib/cocos2d-js-v3.10.js" charset="UTF-8"></script>
     <link rel="icon" type="image/GIF" href="res/favicon.ico"/>
 	<style>
@@ -17,16 +17,16 @@
 <body>
 	<canvas id="gameCanvas" width="800" height="450"></canvas>
 	<script type="text/javascript">
+       var gTest=gTest||{};
 		window.onload=function(){
 			cc.game.onStart = function(){
 				cc.loader.resPath="/res";
-				cc.LoaderScene.preload(g_resources, function () {
-						var gameInst=gCore.GameTop.gameMain();
+				cc.LoaderScene.preload([], function () {
+						var gameInst=gCore.GameTop.movegameMain();
 						var mainScene=gameInst.getModule("viewModule").mainScene;
 						cc.director.runScene(mainScene);
 						gameInst.getModule("viewModule").reRender();
-						gameInst.getModule("modelModule").runGame();
-						gameTest.init(gameInst);
+						gameInst.getModule("modelModule").doShow();
 						}, this);
 			};
 			cc.game.run("gameCanvas");
