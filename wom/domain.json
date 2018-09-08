@@ -1,0 +1,7 @@
+{
+	"test":{
+		"server_list": ["test_001"],
+		"gate_list": ["117.107.133.153:38888"],
+		"is_nearest": true
+	}
+}
