@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<script>
+			var luaState = null;
+			var Module = {
+				onRuntimeInitialized:function(){
+					luaState = new Module.CallInstance(THLUA_SCRIPT);
+				}
+			}
+		</script>
+		<title>browser-amd-editor</title>
+		<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+		<script src="src/emlua.js"></script>
+		<script src="src/thlua.js"></script>
+		<style>
+			div.editor {
+				display: flex;
+			}
+
+		</style>
+	</head>
+	<body>
+		<h2>PlayGround</h2>
+		<div class="editor">
+			<div>
+				<div id="input" style="width:800px; height: 600px; border: 1px solid grey"></div>
+			</div>
+			<div>
+				<div id="output" style="width:800px; height: 600px; border: 1px solid grey"></div>
+			</div>
+		</div>
+
+		<!-- OR ANY OTHER AMD LOADER HERE INSTEAD OF loader.js -->
+		<script src="node_modules/monaco-editor/min/vs/loader.js"></script>
+		<script>
+			require.config({ paths: { vs: 'node_modules/monaco-editor/min/vs' } });
+
+			require(['vs/editor/editor.main'], function () {
+				var leftEditor = monaco.editor.create(document.getElementById('input'), {
+					value: ['local function x() ', '\tprint("Hello world!")', 'end'].join('\n'),
+					language: 'lua'
+				});
+				var rightEditor = monaco.editor.create(document.getElementById('output'), {
+					value: '',
+					language: 'lua'
+				});
+				leftEditor.onDidChangeModelContent(function(e){
+					let content = leftEditor.getValue()
+					let outputRaw = luaState.call("main", content)
+					console.log(outputRaw)
+					let outputObj = JSON.parse(outputRaw)
+					if(typeof(outputObj.err) == "string") {
+						monaco.editor.setModelLanguage(rightEditor.getModel(), "plaintext")
+						rightEditor.setValue(outputObj.err)
+					} else if(typeof(outputObj.content) == "string"){
+						monaco.editor.setModelLanguage(rightEditor.getModel(), "lua")
+						rightEditor.setValue(outputObj.content)
+					}
+				})
+			});
+		</script>
+	</body>
+</html>
