@@ -141,6 +141,8 @@ var initFunction = function(){
 				"hello",
 				"hint_space",
 				"multi_ret",
+				"template",
+				"union_struct",
 				"open_type",
 				"type_cast",
 				"class_function",

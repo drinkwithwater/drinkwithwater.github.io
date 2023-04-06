@@ -218,6 +218,35 @@ const obj2 = cls2.new()
 
 (@print($obj1:getData()))
 (@print($obj2:getData()))
+ */}).toString().slice(14, -3),'template':(function(){/* 
+-- use builtin template
+const l:List(Integer) = {}
+
+l[#l+1] = 123
+
+(@
+
+-- define a template
+let.Pair = Template(function(First,Second)
+	return Struct {
+		first=First,
+		second=Second,
+	}
+end)
+
+)
+
+-- use template
+const t:Pair(Integer, String) = {
+	first=321,
+	second='fdsfs',
+}
+
+-- use template type to check symbol init
+const t:Pair(Integer, String) = {
+	first="jfkdlsfjsfs",
+	second='fdsfs',
+}
  */}).toString().slice(14, -3),'type_cast':(function(){/* 
 -- use @ for covariance cast, this is safe
 local castToA = 321 @ Integer
@@ -253,4 +282,27 @@ const function:class(let.Hello) make(a:Integer, b:String)
 		b=b,
 	}
 end
+ */}).toString().slice(14, -3),'union_struct':(function(){/* 
+(@
+
+-- define a struct
+let.Point = Struct {
+	x=Number,
+	y=Number,
+}
+
+)
+
+-- define union
+const t:Union(Point, String) = {
+	x=321,
+	y=123,
+}
+
+-- assign when t is table
+if type(t) == "table" then
+	t.x = 321
+end
+
+
  */}).toString().slice(14, -3)}
