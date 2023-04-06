@@ -779,9 +779,10 @@ function FunctionBuilder:_buildClass()
 	local nRefer = assert(nReferOrNil, "reference not setted when function:class")
 	local nPolyParNum = self._polyParNum
 	local nFnMaker = function(vPolyParList)
-		local nInterfaceGetter = function(vSuffixHint) 
+		local nInterfaceGetter = function(vSuffixHint)  
 			local nImplementsArg = nil
 			local nExtendsArg = nil
+			local nErrType = nil
 			local ok, err = pcall(vSuffixHint.caller, {
 				implements=function(vHint, vInterface)
 					nImplementsArg = vInterface
@@ -799,8 +800,8 @@ function FunctionBuilder:_buildClass()
 					error("class function can't take RetDots")
 					return vHint
 				end,
-				Err=function(vHint, _)
-					print("TODO")
+				Err=function(vHint, vErrType)
+					nErrType = vErrType
 					return vHint
 				end,
 				isguard=function(vHint, vType)
@@ -842,25 +843,27 @@ function FunctionBuilder:_buildClass()
 					end
 				end
 			end
-			return nExtendsTable, nImplementsInterface
+			return nExtendsTable, nImplementsInterface, nErrType
 		end
 		local nFactory = self._stack:newClassFactory(nNode, self._lexShot)
 		local nClassTable = nFactory:getClassTable()
 		local nNewStack = nFactory:getBuildStack()
 		local nGenParam = nil
 		local nGenFunc = nil
+		local nErrType = nil
 		nClassTable:initAsync(function()
 			local nGenParam_, nSuffixHint, nGenFunc_ = self._parRetMaker(nNewStack, vPolyParList, false)
 			nGenParam = nGenParam_
 			nGenFunc = nGenFunc_
-			local nExtends, nImplements = nInterfaceGetter(nSuffixHint)
+			local nExtends, nImplements, nErrType_ = nInterfaceGetter(nSuffixHint)
+			nErrType = nErrType_
 			return nExtends, nImplements
 		end)
 		nFactory:initAsync(function()
 			nClassTable:waitInit()
 			local nParTermTuple = nGenParam(false)
 			local nParTuple = nParTermTuple:checkTypeTuple()
-			local nRetTuples = self._manager:SingleRetTuples(self._node, self._manager:TypeTuple(self._node, nClassTable))
+			local nRetTuples = self._manager:SingleRetTuples(self._node, self._manager:TypeTuple(self._node, nClassTable), nErrType)
 			return nParTuple, nRetTuples, function()
 				nNewStack:setClassTable(nClassTable)
 				nGenFunc()
@@ -13793,9 +13796,26 @@ function PlayGround:_update(vName, vInput)
     self._splitCode = nCode
     local nParseOkay, nCodeEnv = pcall(CodeEnv.new, nCode, vName)
     if not nParseOkay then
+        local nDia = {
+            node={
+                path=vName,
+                l=1,
+                c=1,
+            }  ,
+            msg=tostring(nCodeEnv),
+            severity=1,
+        }
+        if type(nCodeEnv) == "table" then
+            nDia.node = {
+                path=nCodeEnv.node.path,
+                l=nCodeEnv.node.l,
+                c=nCodeEnv.node.c,
+            }  
+            nDia.msg = nCodeEnv.msg
+        end
         return {
             syntaxErr=true,
-            diaList=json.array({} ),
+            diaList=json.array({nDia} ),
             luaContent=tostring(nCodeEnv),
         }
     end

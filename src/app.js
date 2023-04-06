@@ -93,30 +93,44 @@ var initFunction = function(){
 		// console.log(inputRaw)
 		let outputRaw = luaState.call(selectName, inputRaw)
 		let outputObj = JSON.parse(outputRaw)
+		let markerList = []
 		let diaContent = ""
 		for(var i=0;i<outputObj.diaList.length;i++) {
 			let dia = outputObj.diaList[i];
+			let markerSeverity = 1;
 			switch(dia.severity){
 				case 1:{
-					diaContent += "[ERROR]"
+					diaContent += "[ERROR]";
+					markerSeverity = 8;
 					break;
 				}
 				case 2:{
 					diaContent += "[WARN]"
+					markerSeverity = 4;
 					break;
 				}
 				default:{
 					diaContent += "[INFO]"
+					markerSeverity = 2;
 					break;
 				}
 			}
 			diaContent += dia.node.path+":"+dia.node.l+","+dia.node.c+":"
 			diaContent += dia.msg;
 			diaContent += "\n";
+			markerList[i] = {
+				severity: markerSeverity,
+				message: dia.msg,
+				startLineNumber: dia.node.l,
+				startColumn: dia.node.c,
+				endLineNumber: dia.node.l,
+				endColumn: dia.node.c + 10,
+			}
 		}
 		rightHeader.syntaxErr = outputObj.syntaxErr;
 		rightHeader.diaContent = diaContent;
 		rightHeader.luaContent = outputObj.luaContent;
+		monaco.editor.setModelMarkers(leftEditor.getModel(), "thlua", markerList);
 		rightHeader.update();
 	}
 
