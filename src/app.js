@@ -42,6 +42,7 @@ var initFunction = function(){
 		el:"#outputHead",
 		data : {
 			showLua:true,
+			syntaxErr:false,
 			luaContent:"",
 			diaContent:"",
 		},
@@ -57,12 +58,16 @@ var initFunction = function(){
 			update:function(){
 				if(!this.showLua) {
 					if (rightEditor.getModel().getLanguageId() != "plaintext") {
-						monaco.editor.setModelLanguage(rightEditor.getModel(), "plaintext")
+						monaco.editor.setModelLanguage(rightEditor.getModel(), "plaintext");
 					}
 					rightEditor.setValue(this.diaContent)
 				} else {
-					if (rightEditor.getModel().getLanguageId() != "lua") {
-						monaco.editor.setModelLanguage(rightEditor.getModel(), "lua")
+					let lang = "lua";
+					if(this.syntaxErr){
+						lang="plaintext";
+					}
+					if (rightEditor.getModel().getLanguageId() != lang) {
+						monaco.editor.setModelLanguage(rightEditor.getModel(), lang);
 					}
 					rightEditor.setValue(this.luaContent)
 				}
@@ -70,7 +75,7 @@ var initFunction = function(){
 		}
 	});
 
-	let update = function(triggerByEditor) {
+	let luaCall = function(selectName, triggerByEditor) {
 		let position = false
 		if(!triggerByEditor){
 			leftEditor.setValue(leftContent);
@@ -86,20 +91,34 @@ var initFunction = function(){
 			content:leftContent
 		})
 		// console.log(inputRaw)
-		let outputRaw = luaState.call("main", inputRaw)
+		let outputRaw = luaState.call(selectName, inputRaw)
 		let outputObj = JSON.parse(outputRaw)
-		if(typeof(outputObj.err) == "string") {
-			rightHeader.diaContent = outputObj.err;
-		} else if(typeof(outputObj.content) == "string"){
-			rightHeader.luaContent = outputObj.content;
+		let diaContent = ""
+		for(var i=0;i<outputObj.diaList.length;i++) {
+			let dia = outputObj.diaList[i];
+			switch(dia.severity){
+				case 1:{
+					diaContent += "[ERROR]"
+					break;
+				}
+				case 2:{
+					diaContent += "[WARN]"
+					break;
+				}
+				default:{
+					diaContent += "[INFO]"
+					break;
+				}
+			}
+			diaContent += dia.node.path+":"+dia.node.l+","+dia.node.c+":"
+			diaContent += dia.msg;
+			diaContent += "\n";
 		}
+		rightHeader.syntaxErr = outputObj.syntaxErr;
+		rightHeader.diaContent = diaContent;
+		rightHeader.luaContent = outputObj.luaContent;
 		rightHeader.update();
 	}
-
-	update(false);
-	leftEditor.onDidChangeModelContent(function(e){
-		update(true);
-	});
 
 	var leftHeader = new Vue({
 		el:"#inputHead",
@@ -120,9 +139,14 @@ var initFunction = function(){
 				let content = THLUA_EXAMPLES[name]
 				leftContent = content;
 				this.selected = name;
-				update(false);
+				luaCall(this.selected, false);
 			}
 		}
+	});
+
+	luaCall(leftHeader.selected, false);
+	leftEditor.onDidChangeModelContent(function(e){
+		luaCall(leftHeader.selected, true);
 	});
 }
 

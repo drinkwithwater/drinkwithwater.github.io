@@ -15,6 +15,7 @@ const t:Any = 321
 
 if isHello(t) then
 	(@print($t.a))
+	print(t.rewrew)
 end
  */}).toString().slice(14, -3),'hello':(function(){/* 
 -- define a const variable

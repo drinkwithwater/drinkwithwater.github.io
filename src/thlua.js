@@ -309,7 +309,7 @@ function AutoTail:sealTailFrom(vContext, vFrom, vSealTail )
 	end
 end
 
--- return as TermTuple's tail
+    
 function AutoTail:recurPutTermWithTail(vList) 
 	local nTail = self._sealTail
 	if not nTail then
@@ -334,7 +334,7 @@ function AutoTail:recurPutTermWithTail(vList)
 	end
 end
 
--- false means has auto part, true or type means seal success
+           
 function AutoTail:_recurPutTypeWhenCheckout(vList, vSeal) 
 	for i,v in ipairs(self._holderList) do
 		local nType = v:getType()
@@ -660,11 +660,11 @@ function FunctionBuilder:_buildInnerFn()
 		nAutoFn:initAsync(function()
 			local nGenParam, nSuffixHint, nGenFunc = self._parRetMaker(nNewStack, vPolyParList, vSelfType)
 			local nCastTypeFn = nAutoFn:pickCastTypeFn()
-			-- make par
+			  
 			local nCastArgs = nCastTypeFn and nCastTypeFn:getParTuple():makeTermTuple(nNewStack:inplaceOper())
 			local nParTermTuple = nGenParam(nCastArgs)
 			local nParTuple = nParTermTuple:checkTypeTuple()
-			-- make ret
+			  
 			local nCastRet = nCastTypeFn and nCastTypeFn:getRetTuples()
 			local nHintRetTuples = self:_makeRetTuples(nSuffixHint, vPolyParList, vSelfType)
 			if nHintRetTuples and nCastRet then
@@ -820,7 +820,7 @@ function FunctionBuilder:_buildClass()
 					nExtendsTable = nType
 				else
 					if nType == self._manager.type.False or nType == self._manager.type.Nil then
-						-- false or nil means no base class
+						       
 					else
 						error("base class type must be ClassTable")
 					end
@@ -836,7 +836,7 @@ function FunctionBuilder:_buildClass()
 					nImplementsInterface = nType
 				else
 					if nType == self._manager.type.False or nType == self._manager.type.Nil then
-						-- false or nil means no interface
+						      
 					else
 						error("interface type must be TypedObject")
 					end
@@ -960,7 +960,7 @@ function TableBuilder._makeLongHint(self)
 end
 
 function TableBuilder:_build(vNewTable )
-	-- TODO better code for open table
+	      
 	local nStack = self._stack
 	local nManager = nStack:getTypeManager()
 	local vList, vDotsStart, vDotsTuple = self._pairMaker()
@@ -1077,7 +1077,7 @@ local META_FIELD = {
 	__len=1,
 	__bor=1,
 	__band=1,
-	-- TODO, other meta action
+	    
 }
 
 local function class (super)
@@ -1230,23 +1230,23 @@ end
 function CodeEnv:_prepare()
 	local nAst = self._astTree
 	assert(#self._nodeList == 0, "node list has been setted")
-	-- 1. set line & column, parent
+	      
 	local nStack = {}
 	local nVisitor = VisitorExtend(function(visitor, vNode)
-		-- 1. prepare
+		  
 		self:_prepareNode(vNode, nStack[#nStack] or false)
-		-- 2. recurive visit
+		   
 		nStack[#nStack + 1] = vNode
 		visitor:rawVisit(vNode)
 		nStack[#nStack] = nil
 	end)
 	nVisitor:realVisit(nAst)
-	-- 2. build search
+	   
 	self._searcher:realVisit(nAst)
-	-- 3. build symbol
+	   
 	local nSymbolVisitor = SymbolVisitor.new(self._code)
 	nSymbolVisitor:realVisit(nAst)
-	-- 4. gen code
+	   
 	local gener = HintGener.new(self._astTree)
 	local nTypingCode = gener:genCode()
 	self._typingCode = nTypingCode
@@ -1256,7 +1256,7 @@ function CodeEnv:_buildTypingFn()
 	self:_prepare()
 	local nFunc, nInfo = load(self._typingCode, self._chunkName, "t", setmetatable({}, {
 		__index=function(t,k)
-			-- TODO, give node pos
+			    
 			error("indexing global is fatal error, name="..k)
 		end
 	}))
@@ -1265,7 +1265,7 @@ function CodeEnv:_buildTypingFn()
 	end
 	assert(type(nFunc) == "function", Exception.new("typing code must return function", self._astTree))
 	if not nFunc then
-		-- TODO, give node pos
+		    
 		error(Exception.new(tostring(nInfo), self._astTree))
 	end
 	return nFunc
@@ -1323,7 +1323,7 @@ function CodeEnv:searchHintExprBySuffix(vPos)
 	end
 	local nRetBlock = nil
 	local nPrefixNode = nPair[1]
-	-- lookup a non-hint block
+	    
 	local nCurNode = nPrefixNode
 	local nInHint = true
 	while nCurNode do
@@ -1465,33 +1465,33 @@ local TagToVisiting = {
 		return self:concatList(node, function(i, vStatNode)
 			return self:visit(vStatNode)
 		end, " ")
-		-- RUN_AFTER_IF is not usefull
-		--[[const nStatUntilIf:List(node.Stat) = {}
-		const nStatAfterIf:List(node.Stat) = {}
-		local nMeetIf = false
-		for i, nStatNode in ipairs(node) do
-			if not nMeetIf then
-				nStatUntilIf[#nStatUntilIf + 1] = nStatNode
-			else
-				nStatAfterIf[#nStatAfterIf + 1] = nStatNode
-			end
-			if nStatNode.tag == "If" then
-				nMeetIf = true
-			end
-		end]]
-		--if #nStatAfterIf == 0 then
-		--[[else
-			return {
-				self:concatList@<node.Stat>(nStatUntilIf, function(i, vStatNode)
-						return self:visit(vStatNode)
-				end, " "),
-				self:rgnWrap(nStatAfterIf[1]!).RUN_AFTER_IF(self:fnWrap()(
-					self:concatList@<node.Stat>(nStatAfterIf, function(i, vStatNode)
-							return self:visit(vStatNode)
-					end, " ")
-				))
-			}
-		end]]
+		    
+		   
+		   
+		   
+		     
+			   
+				    
+			
+				    
+			
+			    
+				  
+			
+		
+		    
+		
+			 
+				  
+						 
+				  
+				
+					  
+							 
+					  
+				
+			
+		
 	end,
 	Do=function(self, node)
 		return self:rgnWrap(node).DO(
@@ -1516,7 +1516,7 @@ local TagToVisiting = {
 					else
 						local nIdentENV = vVarNode.isGetFrom
 						if self._chunk.injectNode and nIdentENV == self._chunk[1] then
-							-- INJECT_SET donothing, so just ignore
+							     
 							return ""
 						else
 							return self:stkWrap(vVarNode).GLOBAL_SET(
@@ -1614,7 +1614,7 @@ local TagToVisiting = {
 			#node[2] > 0
 				and self:stkWrap(node).EXPRLIST_UNPACK(tostring(#node[1]), self:visit(node[2]))
 				or self:concatList(node[1], function(i, vNode)
-					-- return self:stkWrap(vNode).NIL_TERM()
+					  
 					return "nil"
 				end, ", "),
 			self:concatList(node[1], function(i, vIdent)
@@ -1623,15 +1623,15 @@ local TagToVisiting = {
 		}
 	end,
 	Localrec=function(self, node)
-		-- recursive function
+		  
 		return self:visitIdentDef(node[1], self:visit(node[2]), true)
 	end,
 	Goto=function(self, node)
-		-- print("--goto TODO")
+		  
 		return {}
 	end,
 	Label=function(self, node)
-		-- print("--label TODO")
+		  
 		return {}
 	end,
 	Return=function(self, node)
@@ -1672,7 +1672,7 @@ local TagToVisiting = {
 	end,
 	HintSpace=function(self, node)
 		if node.kind == "StatHintSpace" then
-			-- self:print("local block = function(self) ", node[1], " end block(self)\n")
+			         
 			return {
 				line = node.l,
 				" local ____hintStat=function() ",
@@ -1809,7 +1809,7 @@ local TagToVisiting = {
 			if nParentTag == "ExprList" then
 				local nSymbolGet = self:stkWrap(node).SYMBOL_GET(symbol, "true")
 				if nParentParentTag == "Invoke" or nParentParentTag == "Call" then
-					-- lazy eval
+					  
 					return self:fnRetWrap(nSymbolGet)
 				else
 					return nSymbolGet
@@ -2068,7 +2068,7 @@ function HintGener:stkAutoUnpack(vNode, vInner)
 	elseif nParent.tag == "Table" then
 		local nTableNode = nParent  
 		if nTableNode[#nTableNode] == vNode then
-			-- table tail not autoUnpack
+			    
 			nAutoUnpack = false
 		end
 	end
@@ -2131,20 +2131,20 @@ function HintGener:visitFunc(vNode )
 		_parNum=tostring(nParamNum),
 		_member=tostring(nIsMember),
 	}), nHintPrefix,
-	-- par ret maker
+	   
 		self:fnWrap("____newStk","____polyArgs", "____self")(
 			"local ____stk,let,_ENV=____newStk,____newStk:BEGIN(____stk,", self:codeNode(nBlockNode), ") ",
 			nPolyUnpack,
-			-- pre declare param
+			   
 			" local ____vDOTS=false ",
-			-- check param when function building
+			     
 			" return ", self:fnWrap("____termArgs")(
 				self:concatList (nParList, function(i, vParNode)
 					local nHintShort = vParNode.hintShort
 					local nHintType = nHintShort and self:fixIHintSpace(nHintShort) or self:stkWrap(vParNode).AUTO()
 					if vParNode.tag ~= "Dots" then
 						if i == 1 then
-							-- if i == 1 then use ____self as first type if setted
+							            
 							nHintType = {
 								"(____self or ", nHintType, ")"
 							}
@@ -2177,7 +2177,7 @@ function HintGener:visitFunc(vNode )
 				self:rgnWrap(vNode).END()
 			)
 		)
-	-- gen function
+	  
 	)
 end
 
@@ -3245,7 +3245,9 @@ local G = lpeg.P { "TypeHintLua";
 
 	-- lexer
 	Skip     = (lpeg.space^1 + vv.Comment)^0;
-	Comment  = lpeg.P"--" * (vv.LongString / function () return end + (lpeg.P(1) - lpeg.P"\n")^0);
+	Comment  = Cenv*Cpos*
+		lpeg.P"--" * (vv.LongString / function () return end + (lpeg.P(1) - lpeg.P"\n")^0)
+		*Cpos/function(env, pos, posEnd) env:markDel(pos, posEnd-1) return end;
 
 	Number = (function()
 		local Hex = (lpeg.P"0x" + lpeg.P"0X") * lpeg.xdigit^1
@@ -3415,7 +3417,7 @@ function ParseEnv:genLuaCode()
 				-- 2. replace hint code with space and newline
 				local nFinishPos = nPosToChange[nStartPos]
 				local nHintCode = nSubject:sub(nStartPos, nFinishPos)
-				nContents[#nContents + 1] = nHintCode:gsub("[^\r\n \t]", "")
+				nContents[#nContents + 1] = nHintCode:gsub("%S", "")
 				nPreFinishPos = nFinishPos
 			--[[elseif type(nChange) == "string" then
 				local nLuaCode = nSubject:sub(nPreFinishPos + 1, nStartPos)
@@ -3806,7 +3808,7 @@ local TagToVisiting = {
 			self:rawVisit(stm)
 		end)
 	end,
-	-- some complicate node
+	   
 	Fornum=function(self, stm)
 		local nBlockNode = stm[5]
 		self:realVisit(stm[2])
@@ -3820,8 +3822,8 @@ local TagToVisiting = {
 		end
 		self:withScope(nBlockNode, nil, function()
 			self:symbolDefine(stm[1], Enum.SymbolKind_ITER)
-			-- self:realVisit(stm[1])
-			-- TODO can't get block node's right type here, so assert this
+			 
+			           
 			self:realVisit(assert(nBlockNode))
 		end)
 	end,
@@ -3866,14 +3868,14 @@ local TagToVisiting = {
 			if nHintLong then
 				self:realVisit(nHintLong)
 			end
-			-- self:realVisit(func[1])
+			 
 			self:realVisit(nBlockNode)
 			local nPolyParList = func.hintPolyParList
 			func.parFullHint = nParFullHint
 			if not nParFullHint then
 				if nPolyParList and #nPolyParList > 0 then
-					-- const nErrNode = self._env:makeErrNode(func[1].pos, "poly function must be full-hint or self:full-hint")
-					-- error(Exception.new(nErrNode[1], nErrNode))
+					           
+					  
 				end
 			else
 				if not func.hintPolyParList then
@@ -3899,7 +3901,7 @@ local TagToVisiting = {
 	Local=function(self, stm)
 		local nIdentList = stm[1]
 		self:realVisit(stm[2])
-		-- self:realVisit(nIdentList)
+		 
 		for i, name in ipairs(nIdentList) do
 			self:symbolDefine(name, stm.isConst and Enum.SymbolKind_CONST or Enum.SymbolKind_LOCAL)
 		end
@@ -3923,7 +3925,7 @@ local TagToVisiting = {
 	end,
 	Ident=function(self, node)
 		assert(node.kind == "use")
-		if node.isGetFrom ~= nil then -- not nil means this Ident has been setted by symbolUse
+		if node.isGetFrom ~= nil then           
 		else
 			self:symbolUse(node, false)
 		end
@@ -4028,8 +4030,8 @@ function SymbolVisitor:withScope(vBlockNode, vFuncOrChunk, vInnerCall)
 	table.remove(self._scopeStack)
 end
 
-function SymbolVisitor:symbolDefine(vIdentNode, vImmutKind) -- , vEffectPos:Integer)
-	-- vIdentNode.effectPos = vEffectPos
+function SymbolVisitor:symbolDefine(vIdentNode, vImmutKind)   
+	   
 	vIdentNode.symbolKind = vImmutKind
 	vIdentNode.symbolModify = false
 	local nName = vIdentNode[1]
@@ -4185,7 +4187,7 @@ local TagToTraverse = {
 		end
 	end,
 
-	-- expr
+	 
 	Do=function(self, node)
 		local nHintLong = node.hintLong
 		if nHintLong then
@@ -4242,7 +4244,7 @@ local TagToTraverse = {
 	end,
 	Label=function(self, node)
 	end,
-	-- apply
+	 
 	Call=function(self, node)
 		self:realVisit(node[1])
 		self:realVisit(node[2])
@@ -4257,7 +4259,7 @@ local TagToTraverse = {
 		self:realVisit(node[3])
 	end,
 
-	-- expr
+	 
 	Nil=function(self, node)
 	end,
 	False=function(self, node)
@@ -4310,7 +4312,7 @@ local TagToTraverse = {
 		self:realVisit(node.hintShort)
 	end,
 
-	-- lhs
+	 
 	Index=function(self, node)
 		self:realVisit(node[1])
 		self:realVisit(node[2])
@@ -4322,7 +4324,7 @@ local TagToTraverse = {
 		end
 	end,
 
-	-- list
+	 
 	ParList=function(self, node)
 		for i=1,#node do
 			self:realVisit(node[i])
@@ -4510,7 +4512,7 @@ function ApplyContext:openAssign(vType)
 	self._once = true
 end
 
--- TODO: refactor later
+   
 function ApplyContext:nativeOpenReturn(vTermTuple)
 	assert(not self._curCase)
 	self._curCase = VariableCase.new()
@@ -4681,12 +4683,12 @@ function AssignContext:matchArgsToTypeTuple(
 	end
 end
 
----------------------------------------------------------
--- 1. castable auto-function always cast success -----
--- 2. castable auto-table may cast failed -----
--- 3. castable auto-function is saved for late cast -----
--- 4. if table cast success, then table's field auto-function is saved for late cast ---------
---------------------------------------------------------
+
+       
+       
+         
+               
+
 function AssignContext:tryIncludeCast(
 	vAutoFnCastDict,
 	vDstType,
@@ -4768,7 +4770,7 @@ function AssignContext:assignTermToType(vAutoTerm, vDstType)
 	else
 		self:includeAndCast(nDstType, nSrcType)
 	end
-	-- TODO, maybe add some case here?
+	      
 	return self:RefineTerm(nDstType)
 end
 
@@ -5015,7 +5017,7 @@ function MorePushContext:mergeReturn()
 		return self:FixedTermTuple({}, nRepeatType)
 	end
 	local nTermList = {}
-	-- step 3. merge 2 ~ nMaxLength
+	      
 	for i=2,nMaxLength do
 		local nCollection = self._manager:TypeCollection()
 		for _, nType1TupleCase in pairs(nRetList) do
@@ -5026,7 +5028,7 @@ function MorePushContext:mergeReturn()
 		local nTypeI = nCollection:mergeToAtomUnion()
 		nTermList[i] = self:RefineTerm(nTypeI)
 	end
-	-- step 4. merge 1
+	    
 	local nTypeCaseList = {}
 	for _, nType1TupleCase in pairs(nRetList) do
 		local nType1 = nType1TupleCase[1]
@@ -5511,10 +5513,10 @@ function AutoFunction:checkWhenCast(vTypeFn)
 			if vTypeFn:includeAll(nOldTypeFn) then
 				self._castTypeFn = vTypeFn
 			elseif nOldTypeFn:includeAll(vTypeFn) then
-				-- donothing
+				 
 			else
-				-- TODO
-				--vContext:error("auto-function cast to multi type", self._node)
+				 
+				     
 			end
 		end
 		return true
@@ -5954,7 +5956,7 @@ end
 
 function PolyFunction:meta_call(vContext, vTypeTuple)
 	error("poly function meta_call TODO")
-	-- TODO
+	 
 end
 
 function PolyFunction:mayRecursive()
@@ -6332,7 +6334,7 @@ function TypedMemberFunction:getHeadlessFn()
 end
 
 function TypedMemberFunction:assumeIncludeAtom(vAssumeSet, vRight, vSelfType)
-	-- TODO
+	 
 	if self == vRight then
 		return self
 	end
@@ -6525,7 +6527,7 @@ function Namespace.new(vManager, vNode, vIndexTable)
 				throw("let shadow set : key="..tostring(nKeyType))
 			end
 			if rawgetV ~= nil then
-				-- for recursive indexing reference
+				    
 				if Reference.is(rawgetV) then
 					rawgetV:setAssignAsync(Node.getDebugNode(3), function() return newV end)
 				else
@@ -6754,7 +6756,7 @@ function ScheduleManager:coWait(vWaitCo, vWaitSid, vDependCo)
 			end
 		end
 		if nCurCo then
-			-- error(Exception.new("recursive build type:"..tostring(self._coToTask[nCurCo])))
+			   
 			error("recursive build type:"..tostring(self._coToTask[nCurCo]))
 		end
 	else
@@ -6770,7 +6772,7 @@ end
 function ScheduleManager:coWakeup(vWaitCo, vWaitSid)
 	local nWaitingInfo = self._coToWaitingInfo[vWaitCo]
 	if not nWaitingInfo then
-		-- session is cancel
+		   
 		print("session is cancel when wakeup")
 		return
 	elseif vWaitSid ~= nWaitingInfo.waitSid then
@@ -6837,7 +6839,7 @@ local class = require "thlua.class"
 
 local ScheduleTask = class ()
 
--- function.open ScheduleTask:ctor(vScheduleManager:clazz.ScheduleManager, vStack:OrNil(clazz.IAstNode, clazz.NameLocation, clazz.SealStack))
+     
 function ScheduleTask:ctor(vScheduleManager, vStack)
 	self._scheduleManager = vScheduleManager
 	self._selfCo = coroutine.create(function(vRunFn)
@@ -6994,12 +6996,12 @@ end
 
 function TypeCollection:mergeToAtomUnion()
 	local nBits = self.bits
-	-- 1. fast type
+	   
 	if nBits == 0 then
-		-- 1) bits=0 for never
+		    
 		return self._type.Never
 	else
-		-- 2). count == 1 for only one type, some bit for only one type
+		              
 		if self.count == 1 or FastTypeBitsToTrue[nBits] then
 			local nOneType = (next(self.bitsToSet[nBits]))
 			return (assert(nOneType, "logic error when type merge"))
@@ -7007,7 +7009,7 @@ function TypeCollection:mergeToAtomUnion()
 	end
 	local nTruableBits = nBits & (~ (TYPE_BITS.NIL | TYPE_BITS.FALSE))
 	local nFalsableBits = nBits & (TYPE_BITS.NIL | TYPE_BITS.FALSE)
-	-- 2. make true part
+	    
 	local nTrueBitToType  = {}
 	for nBit, nSet in pairs(self.bitsToSet) do
 		if TrueBitToTrue[nBit] then
@@ -7016,17 +7018,17 @@ function TypeCollection:mergeToAtomUnion()
 	end
 	local nTrueType = self._type.Never
 	if TrueBitToTrue[nTruableBits] then
-		-- if truablebits is bit, then just one case
+		        
 		nTrueType = nTrueBitToType[nTruableBits]
 	elseif nTruableBits == TYPE_BITS.TRUTH then
-		-- truetype is truth
+		   
 		nTrueType = self._type.Truth
 	elseif next(nTrueBitToType) then
-		-- if truablebits is not bit and has true part, then true part must has more than one case
+		                  
 		local nComplexUnion = ComplexUnion.new(self._manager, nTruableBits, nTrueBitToType)
 		nTrueType = self._manager:_unifyUnion(nComplexUnion)
 	end
-	-- 3. check false part
+	    
 	if nFalsableBits == 0 then
 		return nTrueType
 	else
@@ -7153,7 +7155,7 @@ function TypeManager.new(
 	end
 	local self = setmetatable({
 		_runtime=vRuntime,
-		-- type items
+		  
 		type=nil  ,
 		builtin=nil  ,
 		generic={}   ,
@@ -7331,7 +7333,7 @@ function TypeManager:_buildCombineObject(vNode, vIsInterface, vObjectList)
 		else
 			nNewObject:lateInit(nIntersectSet, nFinalValueDict, nIntersectNextKey, false)
 		end
-		-- TODO check key's count and intersect valid
+		       
 		nNewObject:lateCheck()
 	end)
 	return nNewObject
@@ -7631,7 +7633,7 @@ function TypeManager:typeMapReduce(
 		nCollection:put(nFieldType)
 	end
 	local nKeyUnion = nCollection:mergeToAtomUnion()
-	-- step 1: map
+	   
 	local nTypeToList  = {}
 	for _, nPair in ipairs(vTypePairList) do
 		local nKey = nPair[1]
@@ -7646,7 +7648,7 @@ function TypeManager:typeMapReduce(
 			end
 		end)
 	end
-	-- step 2: reduce
+	   
 	local nTypeDict  = {}
 	for k,v in pairs(nTypeToList) do
 		nTypeDict[k] = vReduceFn(v)
@@ -7921,7 +7923,7 @@ end
 function native.make(vRuntime)
 	local nManager = vRuntime:getTypeManager()
 	local global = {
-		--- meta_native
+		 
 		setmetatable=nManager:stackNativeOpenFunction(function(vStack, vTermTuple)
 			return vStack:withOnePushContext(vStack:getNode(), function(vContext)
 				local nTerm1 = vTermTuple:checkFixed(vContext, 1)
@@ -7963,8 +7965,8 @@ function native.make(vRuntime)
 			vContext:pushFirstAndTuple(nTypeTuple:get(1):checkAtomUnion(), nTypeTuple)
 		end),
 		rawequal=nManager:fixedNativeOpenFunction(function(vContext, vTermTuple)
-			--self:argnum_warn(2, vTermTuple)
-			--return self:check_call(vTermTuple)
+			 
+			 
 			print("rawequal TODO")
 			return vContext:RefineTerm(nManager.type.Boolean)
 		end),
@@ -7978,8 +7980,8 @@ function native.make(vRuntime)
 			end):mergeFirst()
 		end),
 		rawset=nManager:fixedNativeOpenFunction(function(vContext, vTermTuple)
-			--self:argnum_warn(3, vTermTuple)
-			--return self:check_call(vTermTuple)
+			 
+			 
 			print("rawset TODO")
 			return vContext:FixedTermTuple({})
 		end),
@@ -7999,7 +8001,7 @@ function native.make(vRuntime)
 			end)
 			return vContext:mergeToRefineTerm(nTypeCaseList)
 		end),
-		--- not meta_native
+		  
 		select=nManager:fixedNativeOpenFunction(function(vContext, vTermTuple)
 			local nFirstType = vTermTuple:get(vContext, 1):getType()
 			if nFirstType == nManager:Literal("#") then
@@ -8057,9 +8059,9 @@ function native.make(vRuntime)
 			return vContext:FixedTermTuple({})
 		end),
 		tonumber=nManager:fixedNativeOpenFunction(function(vContext, vTermTuple)
-			--self:argnum_warn(1, vTermTuple)
-			--local nData = vTermTuple:get(1)
-			--print("tonumber TODO")
+			 
+			   
+			 
 			return vContext:RefineTerm(nManager:checkedUnion(nManager.type.False, nManager.type.Number))
 		end),
 		require=nManager:stackNativeOpenFunction(function(vStack, vTermTuple)
@@ -8077,10 +8079,10 @@ function native.make(vRuntime)
 			end):mergeFirst()
 		end),
 		load=nManager:fixedNativeOpenFunction(function(vContext, vTermTuple)
-			-- TODO
+			 
 			return vContext:RefineTerm(nManager.type.AnyFunction)
 		end),
-		-- function take open context, not oper context
+		       
 		pcall=nManager:stackNativeOpenFunction(function(vStack, vTermTuple)
 			local nHeadContext = vStack:inplaceOper()
 			local nFunc = vTermTuple:get(nHeadContext, 1):checkRefineTerm(nHeadContext)
@@ -8115,7 +8117,7 @@ function native.make(vRuntime)
 		end),
 	}
 	for k,v in pairs(global   ) do
-		-- v:set_name(k)
+		 
 	end
 
 	global.string=nManager.builtin.string
@@ -8128,7 +8130,7 @@ function native.make(vRuntime)
 	global.coroutine=native.make_coroutine(nManager)
 	global.package=native.make_package(nManager)
 
-	-- global.next = vRuntime.func.next
+	   
 	local nGlobalTable = native._toTable(vRuntime:getTypeManager(), global)
     nGlobalTable:setName("_G")
 
@@ -8289,31 +8291,31 @@ function native.make_table(vManager)
 		remove=vManager:fixedNativeOpenFunction(function(vContext, vTermTuple)
 			local nFirstTerm = vTermTuple:get(vContext, 1)
 			local nType = nFirstTerm:getType()
-			-- const nRetType = checkList(vContext, nType, "remove")
-			-- return vContext:FixedTermTuple({vContext:RefineTerm(nRetType)})
+			      
+			  
 			return vContext:FixedTermTuple({})
 		end),
 		unpack=vManager:fixedNativeOpenFunction(function(vContext, vTermTuple)
-			--[[local nFirstTerm = vTermTuple:get(vContext, 1)
-			local nType = nFirstTerm:getType()
-			local nNumber = vManager.type.Number
-			local nCollection = vManager:TypeCollection()
-			nType:foreach(function(vSubType)
-				local nLenType = vSubType:meta_len(vContext)
-				if not (Number.is(nLenType) or NumberLiteral.is(nLenType)) then
-					vContext:error("__len must return number when concat")
-					return
-				end
-				local nValueType = vSubType:meta_get(vContext, nNumber)
-				nCollection:put(nValueType)
-			end)
-			local nRetType = nCollection:mergeToAtomUnion()
-			return vManager:TypeTuple(vContext:getNode()):Dots(nRetType:notnilType()):makeTermTuple(vContext)]]
+			    
+			   
+			   
+			   
+			
+				   
+				     
+					     
+					
+				
+				    
+				
+			
+			   
+			 
 			return vContext:FixedTermTuple({})
 		end),
 		move=vManager:fixedNativeOpenFunction(function(vContext, vTermTuple)
-			-- move TODO
-			-- vContext:error("table move")
+			  
+			  
 			return vTermTuple:get(vContext, 5)
 		end)
 	}
@@ -8327,7 +8329,7 @@ function native.make_inext(vManager)
 	local nNil = vManager.type.Nil
 	return vManager:fixedNativeOpenFunction(function(vContext, vTermTuple)
 		local nFirstTerm = vTermTuple:get(vContext, 1)
-		--local nNotNilValue = nType1:meta_get(vContext, nNumber):notnilType()
+		    
 		local nNotNilValue = vContext:getInstStack():META_GET(vContext:getNode(), nFirstTerm, vContext:RefineTerm(nNumber), true):getType()
 		local nValueTerm = vContext:RefineTerm(vManager:checkedUnion(nNotNilValue, nNil))
 		local nKeyValue  = {
@@ -8465,7 +8467,7 @@ function AutoTable:castMatchOne(
 		end
 		nMatchValue = nMatchValue:checkAtomUnion()
 		if TypedMemberFunction.is(nMatchValue) then
-			-- TODO:thinking how to refactor for member function cast
+			        
 			nMatchValue=nMatchValue:indexTypeFn(vStruct)
 		end
 		local nIncludeType, nCastSucc = vContext:tryIncludeCast(nAutoFnCastDict, nMatchValue, vTableValue)
@@ -8677,17 +8679,17 @@ function ClassTable:implInterface()
 			end
 		end
 	end
-	--[[
-	const nMetaIndex = self._metaIndex
-	for _, nField in pairs(nSelfFieldDict) do
-		const nSelfValue = nField.valueType
-		if MemberFunction.is(nSelfValue) then
-			if not nSelfValue:needPolyArgs() then
-				nSelfValue:indexAutoFn(self)
-			end
-		elseif AutoFunction.is(nSelfValue) then
-		end
-	end]]
+	
+	   
+	     
+		   
+		  
+			   
+				
+			
+		  
+		
+	
 end
 
 function ClassTable:ctxWait(vContext)
@@ -8719,7 +8721,7 @@ function ClassTable:assumeIncludeAtom(vAssumeSet, vType, _)
 		end
 		return nMatchTable == self and self or false
 	else
-		-- TODO check struct
+		   
 		return false
 	end
 end
@@ -8770,7 +8772,7 @@ function Interface:assumeIncludeObject(vAssumeSet , vRightObject)
 	local nRightValueDict = vRightObject:getValueDict()
 	local nRightResultType = nRightKeyRefer:getResultType()
 	return self:_everyWith(vRightObject, function(vLeftKey, vLeftValue)
-		if nRightResultType then -- key is merged, just get one matched
+		if nRightResultType then        
 			local nRightKey = nRightResultType:assumeIncludeAtom(vAssumeSet, vLeftKey)
 			if not nRightKey then
 				return false
@@ -8780,7 +8782,7 @@ function Interface:assumeIncludeObject(vAssumeSet , vRightObject)
 				return false
 			end
 			return vLeftValue:assumeIncludeAll(vAssumeSet, nRightValue, vRightObject) and true
-		else -- key is not merged, iter for one matched
+		else         
 			for _, nRightMoreKey in ipairs(nRightKeyRefer:getListAwait()) do
 				if nRightMoreKey:assumeIncludeAtom(vAssumeSet, vLeftKey) then
 					local nRightValue = nRightValueDict[nRightMoreKey]
@@ -8848,7 +8850,7 @@ function Interface:assumeIntersectInterface(vAssumeSet , vRightObject)
 	local nRightKeyRefer, nRightNextKey = vRightObject:getKeyTypes()
 	local nRightResultType = nRightKeyRefer:getResultType()
 	return self:_everyWith(vRightObject, function(vLeftKey, vLeftValue)
-		if nRightResultType then -- key is merged, just get one matched
+		if nRightResultType then        
 			local nRightKey = nRightResultType:assumeIncludeAtom(vAssumeSet, vLeftKey)
 			if not nRightKey then
 				return true
@@ -8916,13 +8918,13 @@ function MetaEventCom.new(vManager, vSelfType )
 		_bopEq=false,
 		_bopDict={} ,
 		_uopLen=false,
-		_uopDict=false, -- TODO {}@Dict(String, MetaFnField),
-		-- special
+		_uopDict=false,    
+		 
 		_pairs=false,
 		_ipairs=false,
 		_tostring=false,
 		_mode=false,
-		_call=false, -- TODO @OrFalse(MetaFnField),
+		_call=false,   
 		_metatable=false,
 		_gc=false,
 		_name=false,
@@ -8986,7 +8988,7 @@ end
 function MetaEventCom:initByTable(vContext, vMetaTable )
 	local nSelfType = self._selfType
 	local nManager = self._manager
-	-- 1. build bop
+	   
 	for nOper, nEvent in pairs(OPER_ENUM.bopNoEq) do
 		local nMethodType = vMetaTable:native_rawget(vContext, nManager:Literal(nEvent))
 		self._bopDict[nEvent] = buildFieldFromFn(vContext, nEvent, nMethodType)
@@ -8995,21 +8997,21 @@ function MetaEventCom:initByTable(vContext, vMetaTable )
 	if not Nil.is(nEqFn) then
 		vContext:error("TODO meta logic for bop __eq", tostring(nEqFn))
 	end
-	-- 2. build uop
+	   
 	local nLenFn = vMetaTable:native_rawget(vContext, nManager:Literal("__len"))
 	local nLenTypeFn = nManager:checkedFn(nSelfType):Ret(nManager.type.Integer)
 	local nLenField = buildFieldFromFn(vContext, "__len", nLenFn, nLenTypeFn)
 	if nLenField then
 		self._uopLen = nManager.type.Integer
-		-- TODO, use fn's ret in the future
-		-- self._uopLen = nLenField.typeFn:getRetTuples():getFirstType():checkAtomUnion()
+		       
+		   
 	end
-	-- 3. build other
-	-- 1) __tostring
+	   
+	  
 	local nStringTypeFn = nManager:checkedFn(nSelfType):Ret(nManager.type.String)
 	local nStringFn = vMetaTable:native_rawget(vContext, nManager:Literal("__tostring"))
 	self._tostring = buildFieldFromFn(vContext, "__tostring", nStringFn, nStringTypeFn) or false
-	-- 2) __pairs
+	  
 	local nPairsFn = vMetaTable:native_rawget(vContext, nManager:Literal("__pairs"))
 	self._pairs = buildFieldFromFn(vContext, "__pairs", nPairsFn) or false
 end
@@ -9032,14 +9034,14 @@ end
 
 function MetaEventCom:initByEventDict(vActionDict )
 	local nManager = self._manager
-	-- 1. build bop
+	   
 	for nOper, nEvent in pairs(OPER_ENUM.bopNoEq) do
 		self._bopDict[nEvent] = buildFieldFromAllType(nEvent, vActionDict[nEvent])
 	end
 	if vActionDict["__eq"] then
 		print("__eq in action table TODO")
 	end
-	-- 2. build uop
+	   
 	local nLenType = vActionDict["__len"]
 	if nLenType then
 		nLenType = nLenType:checkAtomUnion()
@@ -9048,7 +9050,7 @@ function MetaEventCom:initByEventDict(vActionDict )
 		end
 		self._uopLen = nLenType
 	end
-	-- 3.
+	 
 	self._pairs = buildFieldFromAllType("__pairs", vActionDict["__pairs"]) or false
 	self._ipairs = buildFieldFromAllType("__ipairs", vActionDict["__ipairs"]) or false
 end
@@ -9143,7 +9145,7 @@ function OpenTable:detailString(v, vVerbose)
 end
 
 function OpenTable:meta_len(vContext)
-	-- TODO
+	 
 	return self._manager.type.Number
 end
 
@@ -9168,14 +9170,14 @@ function OpenTable:native_setmetatable(vContext, vMetaTableType)
 		return
 	end
 	self._metaTable = vMetaTableType
-	-- TODO, opentable don't allow meta event except index & newindex, check other fields
-	--assert(not self._metaEventCom, "meta event has been setted")
-	--const nMetaEventCom = self._manager:makeMetaEventCom(self)
-	--nMetaEventCom:initByBaseTable(vContext, vMetaTableType)
-	--self._metaEventCom = nMetaEventCom
-	-- 2. copyout index/newindex event items
+	             
+	      
+	   
+	 
+	  
+	     
 	local nManager = self._manager
-	-- 3. meta index
+	   
 	local nIndexType = vMetaTableType:native_rawget(vContext, nManager:Literal("__index"))
 	if nIndexType:isUnion() then
 		vContext:error("open table's __index can't be union type")
@@ -9186,7 +9188,7 @@ function OpenTable:native_setmetatable(vContext, vMetaTableType)
 			vContext:error("open table's __index must be object or function or nil")
 		end
 	end
-	-- 4. meta newindex
+	   
 	local nNewIndexType = vMetaTableType:native_rawget(vContext, nManager:Literal("__newindex"))
 	if nNewIndexType:isUnion() then
 		vContext:error("open table's __newindex can't be union type")
@@ -9237,7 +9239,7 @@ function OpenTable:meta_set(vContext, vKeyType, vValueTerm)
 		return true
 	end)
 	if nNotRecursive then
-		-- return Boolean?
+		  
 	else
 		error("opentable's __newindex chain recursive")
 	end
@@ -9247,7 +9249,7 @@ local NIL_TRIGGER = 1
 local NONE_TRIGGER = 2
 function OpenTable:meta_get(vContext, vKeyType)
 	local nNotRecursive, nOkay = vContext:recursiveChainTestAndRun(self, function()
-		-- TODO trigger meta index
+		    
 		local nKeyIncludeType = self._keyType:includeAtom(vKeyType)
 		local nTrigger = false
 		if nKeyIncludeType then
@@ -9295,7 +9297,7 @@ function OpenTable:native_rawset(vContext, vKeyType, vValueTerm)
 	local nIncludeType = self._keyType:includeAtom(vKeyType)
 	if not nIncludeType then
 		if vKeyType:isSingleton() and not vKeyType:isNilable() then
-			-- TODO thinking lock
+			   
 			if self._locked then
 				vContext:error("assign to locked open-table")
 				return
@@ -9373,14 +9375,14 @@ function OpenTable:native_next(vContext, vInitType)
 end
 
 function OpenTable:meta_pairs(vContext)
-	--[[
-	const nCom = self._metaEventCom
-	if nCom then
-		const nPairsFn = nCom:getPairsFunc()
-		if nPairsFn then
-			vContext:error("TODO:open table use __pairs as meta field")
-		end
-	end]]
+	
+	   
+	  
+		   
+		  
+			      
+		
+	
 	return false
 end
 
@@ -9492,7 +9494,7 @@ function SealTable:ctor(vManager, vNode, vLexStack, ...)
 end
 
 function SealTable:meta_len(vContext)
-	-- TODO
+	 
 	return self._manager.type.Number
 end
 
@@ -9518,21 +9520,21 @@ function SealTable:native_setmetatable(vContext, vMetaTableType)
 		return
 	end
 	self._metaTable = vMetaTableType
-	-- 1. copyout meta event items
+	     
 	assert(not self._metaEventCom, "meta event has been setted")
 	local nMetaEventCom = self._manager:makeMetaEventCom(self)
 	nMetaEventCom:initByTable(vContext, vMetaTableType)
 	self._metaEventCom = nMetaEventCom
-	-- 2. copyout index/newindex event items
+	     
 	local nManager = self._manager
 	local nIndexType = vMetaTableType:native_rawget(vContext, nManager:Literal("__index"))
 	local nNewIndexType = vMetaTableType:native_rawget(vContext, nManager:Literal("__newindex"))
-	-- 3. set default com
+	    
 	self:setMetaIndex(
 		vContext,
 		not nIndexType:isNever() and nIndexType or false,
 		not nNewIndexType:isNever() and nNewIndexType or false)
-	-- 4. trigger on set
+	    
 	self:onSetMetaTable(vContext)
 end
 
@@ -9628,7 +9630,7 @@ function SealTable:native_rawset(vContext, vKeyType, vValueTerm)
 					return
 				end
 			end
-			-- TODO thinking when to lock this
+			      
 			self._keyType = self._manager:checkedUnion(self._keyType, vKeyType)
 			self._fieldDict[vKeyType] = {
 				valueType = vValueTerm:getType(),
@@ -9848,7 +9850,7 @@ function Struct:assumeIncludeObject(vAssumeSet , vRightObject)
 	end
 	local nRightResultType = nRightKeyRefer:getResultType()
 	if not self:_everyWith(vRightObject, function(nLeftKey, nLeftValue)
-		if nRightResultType then -- key is merged, just get one matched
+		if nRightResultType then        
 			local nRightKey = nRightResultType:assumeIncludeAtom(vAssumeSet, nLeftKey)
 			if not nRightKey then
 				return false
@@ -9861,7 +9863,7 @@ function Struct:assumeIncludeObject(vAssumeSet , vRightObject)
 				return false
 			end
 			nRightValueDict[nRightKey] = nil
-		else -- key is not merged, iter for one matched
+		else         
 			local nMatchedKey = nil
 			for _, nRightKey in ipairs(nRightKeyRefer:getListAwait()) do
 				if nRightKey:assumeIncludeAtom(vAssumeSet, nLeftKey) then
@@ -10268,7 +10270,7 @@ end
 
 function AsyncUnion:setAtomList(vAtomList, vLateRunner)
 	assert(not self._typeList, "type list has been setted")
-	-- step 1. set list
+	    
 	self._typeList = vAtomList
 	for k, v in ipairs(vAtomList) do
 		if v:mayRecursive() then
@@ -10284,7 +10286,7 @@ function AsyncUnion:setAtomList(vAtomList, vLateRunner)
 			return nResultType
 		end
 	end
-	-- step 2. merge to result type
+	      
 	local nResultType = nil
 	if #vAtomList == 0 then
 		nResultType = self._manager.type.Never
@@ -10782,7 +10784,7 @@ function BaseRuntime:ctor(vLoader)
 	self._pathToFileName={} 
 	self._loadedDict={} 
 	self._scheduleManager=ScheduleManager.new()
-	-- late init fields
+	   
 	self._node=nil
 	self._manager=nil
 	self._globalTable=nil
@@ -10839,7 +10841,7 @@ function BaseRuntime:pmain(vMainFileName)
 	self._globalTable = native.make(self)
 	nRootStack:rootSetNamespace(self:RootNamespace())
 	local t1 = os.clock()
-	local a,b = pcall(function()
+	local ok, err = pcall(function()
 		nAutoFn:initAsync(function()
 			return false, false, function()
 				local nLoadedState = self:_cacheLoadFile(self._node, vMainFileName)
@@ -10851,10 +10853,17 @@ function BaseRuntime:pmain(vMainFileName)
 		nAutoFn:startPreBuild()
 		nAutoFn:startLateBuild()
 	end)
+	if not ok then
+		if Exception.is(err) then
+			self:nodeError(err.node, err.msg)
+		else
+			self:nodeError(self._node, err)
+		end
+	end
 	local t2 = os.clock()
 	print(t2-t1)
-	-- self:diffTestExpect()
-	return a,b
+	 
+	return ok, err
 end
 
 function BaseRuntime:lateSchedule(vAutoFn)
@@ -10862,11 +10871,11 @@ function BaseRuntime:lateSchedule(vAutoFn)
 end
 
 function BaseRuntime:recordBranch(vNode, vBranch)
-	-- pass
+	 
 end
 
 function BaseRuntime:recordApplyContext(vNode, vContext)
-	-- pass
+	 
 end
 
 function BaseRuntime:SealStack(...)
@@ -10945,10 +10954,10 @@ function BaseRuntime:buildSimpleGlobal()
 		ExtendInterface="buildExtendInterface",
 		ExtendStruct="buildExtendStruct",
 		Template="buildTemplate",
-		--IDict="buildIDict",
-		--IList="buildIList",
-		--Dict="buildDict",
-		--List="buildList",
+		
+		
+		
+		
 		OrNil="buildOrNil",
 		OrFalse="buildOrFalse",
 		Fn="buildFn",
@@ -11016,7 +11025,7 @@ function BaseRuntime:makeGlobalTerm()
 end
 
 function BaseRuntime:_save(vSeverity, vNode, ...)
-	-- pass
+	 
 end
 
 function BaseRuntime:nodeError(vNode, ...)
@@ -11151,21 +11160,21 @@ function BaseStack:prepareMetaCall(
 	end)
 end
 
---[[function.open BaseStack:nodePcall(vNode:clazz.IAstNode, vFunc, ...)
-	const ok, err = xpcall(vFunc, function(exc:Union(String, clazz.Exception)):Ret(clazz.Exception)
-		if Exception.is(exc) then
-			return exc
-		else
-			print("[ERROR] "..tostring(vNode), tostring(exc))
-			print(debug.traceback())
-			return Exception.new("[FATAL]"..tostring(exc), vNode)
-		end
-	end, ...)
-	if not ok then
-		error(err)
-	end
-	return ok, err
-end]]
+   
+	      
+		  
+			 
+		
+			  
+			
+			  
+		
+	 
+	   
+		
+	
+	  
+
 
 function BaseStack:getClassTable()
 	return self:getSealStack():getClassTable()
@@ -11379,7 +11388,7 @@ end
 function Branch:mutGet(vContext, vLocalSymbol)
 	local nImmutVariable = self.symbolToVariable[vLocalSymbol]
 	if not nImmutVariable then
-		-- TODO, consider upvalue symbol??
+		    
 		nImmutVariable = vLocalSymbol:makeVariable()
 		self.symbolToVariable[vLocalSymbol] = nImmutVariable
 	end
@@ -11562,8 +11571,8 @@ function CompletionRuntime:lateSchedule(vAutoFn)
 end
 
 function CompletionRuntime:_save(vSeverity, vNode, ...)
-	--const nServer = self._loader
-	--nServer:info(vNode, ...)
+	   
+	 
 end
 
 function CompletionRuntime:recordBranch(vNode, vBranch)
@@ -11575,7 +11584,7 @@ function CompletionRuntime:recordApplyContext(vNode, vContext)
 end
 
 function CompletionRuntime:focusSchedule(vFuncList)
-	-- 1. set focus functions
+	    
 	local nSet = self._focusNodeSet
 	local nAutoFnList = {}
 	for _,nNode in pairs(vFuncList) do
@@ -11605,11 +11614,11 @@ function CompletionRuntime:_injectForeach(vTracePos, vBlockNode, vFn, vCallback 
 	if not nBranchList then
 		return
 	end
-	-- 3. run inject fn in each branches
+	       
 	for _, nBranch in pairs(nBranchList) do
 		local nStack = nBranch:getStack()
 		local nResult = vFn(nStack, function(vIdent)
-			-- 1. lookup local symbol
+			    
 			local nName = vIdent[1]
 			local nDefineIdent = vBlockNode.symbolTable[nName]
 			while nDefineIdent and nDefineIdent.pos > vTracePos do
@@ -11623,7 +11632,7 @@ function CompletionRuntime:_injectForeach(vTracePos, vBlockNode, vFn, vCallback 
 					return nStack:NIL_TERM(vIdent)
 				end
 			end
-			-- 2. lookup global symbol
+			    
 			local nName = "_ENV"
 			local nDefineIdent = vBlockNode.symbolTable[nName]
 			while nDefineIdent and nDefineIdent.pos > vTracePos do
@@ -11809,7 +11818,7 @@ function InstStack:BEGIN(vLexStack, vBlockNode)
 	return nSpace.localExport, nSpace.globalExport
 end
 
--- pack explist to termtuple or lazyfunc
+      
 function InstStack:EXPRLIST_REPACK(
 	vNode,
 	vLazy,
@@ -11830,7 +11839,7 @@ function InstStack:EXPRLIST_REPACK(
 				local cur = l[i]
 				if TermTuple.is(cur) then
 					if #cur ~= 1 then
-						-- self._runtime:nodeWarn(vNode, "tuple expect 1 value but get "..#cur)
+						        
 					end
 					nTermList[i] = cur:get(nPackContext, 1)
 				elseif RefineTerm.is(cur) or AutoHolder.is(cur) then
@@ -11843,7 +11852,7 @@ function InstStack:EXPRLIST_REPACK(
 			end
 			return nTermList
 		end
-		-- force cast
+		  
 		if TermTuple.is(nLast) then
 			reFunc = function()
 				return nPackContext:UTermTupleByAppend(repackWithoutLast(), nLast)
@@ -11869,7 +11878,7 @@ function InstStack:EXPRLIST_REPACK(
 	end
 end
 
--- unpack explist to vNum term | termtuple
+       
 function InstStack:EXPRLIST_UNPACK(
 	vNode,
 	vNum,
@@ -11884,9 +11893,9 @@ function InstStack:EXPRLIST_UNPACK(
 			if TermTuple.is(last) then
 				local nIndex = i - #l + 1
 				re[i] = last:get(nUnpackContext, nIndex)
-				-- if not last:rawget(nIndex) and not last:getTail() then
-					-- self._runtime:nodeError(vNode, "exprlist_unpack but right tuple value not enough")
-				-- end
+				       
+					        
+				 
 			else
 				self._runtime:nodeError(vNode, "exprlist_unpack but right value not enough")
 				re[i] = nUnpackContext:RefineTerm(self._manager.type.Nil)
@@ -11903,7 +11912,7 @@ function InstStack:EXPRLIST_UNPACK(
 	return table.unpack(re)
 end
 
--- meta items
+  
 function InstStack:META_GET(
 	vNode,
 	vSelfTerm,
@@ -11990,7 +11999,7 @@ function InstStack:META_EQ_NE(
 		vRightTerm:foreach(function(vRightType, vRightVariableCase)
 			local nReType = nil
 			if vLeftType:isSingleton() and vRightType:isSingleton() then
-				-- TODO check for named type
+				     
 				local nTypeIsEq = vLeftType == vRightType
 				if vIsEq == nTypeIsEq then
 					nReType = self._manager.type.True
@@ -12119,7 +12128,7 @@ end
 
 function InstStack:CAST_HINT(vNode, vTerm, vCastKind, ...)
 	local nCastContext = self:newAssignContext(vNode)
-	-- TODO check cast valid
+	    
 	if vCastKind == Enum.CastKind_POLY then
 		local nTypeCaseList = {}
 		local nTemplateList = self._manager:easyToTypeList(...)
@@ -12188,7 +12197,7 @@ end
 
 function InstStack:PARAM_UNPACK(
 	vNode,
-	vTermTuple, -- false means seal function without cast type
+	vTermTuple,        
 	vIndex,
 	vHintType 
 )
@@ -12204,7 +12213,7 @@ function InstStack:PARAM_UNPACK(
 			local nAutoTerm = vTermTuple:get(nHeadContext, vIndex)
 			nHeadContext:assignTermToType(nAutoTerm, vHintType)
 		end
-		-- TODO check type match here...
+		     
 		return nHeadContext:RefineTerm(vHintType)
 	end
 end
@@ -12261,7 +12270,7 @@ function InstStack:SYMBOL_NEW(vNode, vKind, vModify, vTermOrNil, vHintType)
 		end
 		nTerm = nTermInHolder
 		local nFromType = nTerm:getType()
-		-- convert string literal to string, number literal to number, boolean literal to boolean
+		             
 		if vModify and vKind == Enum.SymbolKind_LOCAL then
 			local nToType = nSymbolContext:getTypeManager():literal2Primitive(nFromType)
 			if nFromType ~= nToType then
@@ -12382,9 +12391,9 @@ function InstStack:FOR_IN(vNode, vFunc, vNextSelfInit)
 			return
 		end
 		local nTermList = {nForContext:RefineTerm(vAtomType)}
-		--[[for i=2, #nTuple do
-			nTermList[i] = nTuple:get(i)
-		end]]
+		   
+			  
+		
 		for i=2, #nTuple do
 			local nTerm = nTuple:get(nForContext, i)
 			local nType = vCase[nTerm:attachImmutVariable()]
@@ -12651,14 +12660,14 @@ function SealStack:RAISE_ERROR(vContext, vRaiseErr)
 		local nHintErr = nRetTuples:getErrType()
 		if not nHintErr:includeAll(vRaiseErr) then
 			if nString:includeAll(nHintErr) then
-				--vContext:error("can't implicit throw a non-string error")
+				     
 			else
-				--vContext:error("err type not match")
+				   
 			end
 		end
 	else
 		if not nString:includeAll(vRaiseErr) then
-			--vContext:error("can't implicit throw a non-string error")
+			     
 		end
 	end
 end
@@ -13127,7 +13136,7 @@ function BaseServer:rpc()
 	if result then
 		if nId then
 			self:writeResult(nId, result)
-			-- self:info("write response:$"..tostring(nId))
+			  
 		else
 			self:warn(reqToStr(request), "request without id ")
 		end
@@ -13164,7 +13173,7 @@ function BaseServer:readRequest()
 		error("Content-Length failed in rpc")
 	end
 
-	-- 2 get body
+	   
 	local data = io.read(length)
 	if not data then
 		error("read nothing")
@@ -13178,7 +13187,7 @@ function BaseServer:readRequest()
 	if req.jsonrpc ~= "2.0" then
 		error("json-rpc is not 2.0, "..tostring(req.jsonrpc))
 	end
-	-- self:info("recv:"..reqToStr(req) ) -- , json.encode(obj.params))
+	     
 	return req
 end
 
@@ -13279,8 +13288,8 @@ function BaseServer:debug(...)
 end
 
 function BaseServer:setRoot(vRoot)
-	--self.root = vRoot:gsub("/*$", "")
-	--self:info("root:", self.root, vRoot)
+	   
+	  
 	self._rootPath = vRoot
 end
 
@@ -13344,7 +13353,7 @@ function FastServer:getInitializeResult()
 		capabilities = {
 			textDocumentSync = {
 				openClose = true,
-				change = 2, -- 1 is non-incremental, 2 is incremental
+				change = 2,       
 				save = { includeText = true },
 			},
 			definitionProvider = true,
@@ -13353,14 +13362,14 @@ function FastServer:getInitializeResult()
 				triggerCharacters = {".",":"},
 				resolveProvider = false
 			},
-			--referencesProvider = true,
-			--documentLocalSymbolProvider = false,
-			--documentHighlightProvider = false,
-			--workspaceLocalSymbolProvider = false,
-			--codeActionProvider = false,
-			--documentFormattingProvider = false,
-			--documentRangeFormattingProvider = false,
-			--renameProvider = false,
+			  
+			  
+			  
+			  
+			  
+			  
+			  
+			  
 		},
 	}
 end
@@ -13432,7 +13441,7 @@ function FastServer:onDefinition(vParams)
 	local nLine = vParams.position.line + 1
 	local nColumn = vParams.position.character + 1
 	local nPos = nSplitCode:lcToPos(nLine, nColumn)
-	-- 1. find Ident_use to targe Ident_def
+	      
 	local nRightEnv = nFileState:getRightEnv()
 	if nRightEnv then
 		local nNode = nRightEnv:searchIdent(nPos)
@@ -13449,7 +13458,7 @@ function FastServer:onDefinition(vParams)
 			end
 		end
 	end
-	-- 2. other case, get position in succ env, find by expr lookup
+	            
 	local nCompletionRuntime = self:checkRuntime()
 	local nSuccEnv = nCompletionRuntime:getCodeEnv(nFileUri)
 	if not nSuccEnv then
@@ -13461,7 +13470,7 @@ function FastServer:onDefinition(vParams)
 		return nil
 	end
 	local nPos = nSuccEnv:getSplitCode():lcToPos(nLine, nColumn)
-	-- 3. search expr
+	   
 	local nExprNode, nFocusList = nSuccEnv:searchExprBySuffix(nPos)
 	if nExprNode then
 		nCompletionRuntime:focusSchedule(nFocusList)
@@ -13478,7 +13487,7 @@ function FastServer:onDefinition(vParams)
 			}
 		}
 	end
-	-- 4. search hint expr
+	    
 	local nHintExprNode, nBlockNode, nFocusList = nSuccEnv:searchHintExprBySuffix(nPos)
 	if not nHintExprNode then
 		self:info("no target expr")
@@ -13491,7 +13500,7 @@ function FastServer:onDefinition(vParams)
 		return nil
 	end
 	nCompletionRuntime:focusSchedule(nFocusList)
-	-- 5. run inject
+	   
 	local nFieldCompletion = nCompletionRuntime:injectCompletion(nInjectTrace.pos, nBlockNode, nInjectFn, self)
 	if not nFieldCompletion then
 		self:info("completion fail for no branch", nBlockNode, nBlockNode.tag)
@@ -13512,7 +13521,7 @@ end
 
 function FastServer:onCompletion(vParams)
 	local nCompletionRuntime = self._runtime
-	-- 1. get succ env
+	    
 	local nFileUri = vParams.textDocument.uri
 	local nFileState = self:checkFileState(nFileUri)
 	local nSuccEnv = self:checkRuntime():getCodeEnv(nFileUri)
@@ -13520,20 +13529,20 @@ function FastServer:onCompletion(vParams)
 		self:info("completion fail for some code error")
 		return nil
 	end
-	-- 2. cut code
+	   
 	local nSplitCode = nFileState:getSplitCode()
 	local nPos = nSplitCode:lcToPos(vParams.position.line+1, vParams.position.character+1)
 	local nWrongContent = nSplitCode:getContent():sub(1, nPos-1)
-	-- 3. parsing with error
+	    
 	local nInjectFn, nInjectTrace = CodeEnv.genInjectFnByError(nSplitCode, nFileUri, nWrongContent)
 	if not nInjectFn then
 		return nil
 	end
-	-- TODO, using nInjectNode.pos maybe not right such as local a = a.fds ...
+	             
 	local nInjectNode, nTraceList = assert(nInjectTrace.capture.injectNode), nInjectTrace.traceList
 	local nBlockNode, nFuncList = nSuccEnv:traceBlockRegion(nTraceList)
 	nCompletionRuntime:focusSchedule(nFuncList)
-	-- 4. run inject
+	   
 	local nFieldCompletion = nCompletionRuntime:injectCompletion(nInjectNode.pos, nBlockNode, nInjectFn, self)
 	if not nFieldCompletion then
 		self:info("completion fail for no branch", nBlockNode, nBlockNode.tag)
@@ -13550,23 +13559,23 @@ function FastServer:onCompletion(vParams)
 end
 
 function FastServer:onHover(vParams)
-	--[[
-	local nFileName = self:uriToPath(vParams.textDocument.uri)
-	local nDefineNode = self:searchDefine(nFileName, vParams.position.line + 1, vParams.position.character + 1)
-	if nDefineNode then
-		local nLocalSymbolSet = self:checkRuntime():getNodeLocalSymbolSet(nDefineNode)
-		local l = {}
-		for nLocalSymbol, _ in pairs(nLocalSymbolSet) do
-			l[#l + 1] = tostring(nLocalSymbol:getType())
-		end
-		local value = table.concat(l, ",")
-		return {
-			contents = {
-				kind="plaintext",
-				value=value
-			} @ MarkupContent
-		}
-	end]]
+	
+	   
+	         
+	  
+		   
+		   
+		     
+			    
+		
+		    
+		 
+			  
+				
+				
+			  
+		
+	
 end
 
 return FastServer
@@ -13753,6 +13762,7 @@ local DiagnosticRuntime = require "thlua.runtime.DiagnosticRuntime"
        
         
         
+        
     
 
 
@@ -13784,19 +13794,30 @@ function PlayGround:_update(vName, vInput)
     local nParseOkay, nCodeEnv = pcall(CodeEnv.new, nCode, vName)
     if not nParseOkay then
         return {
-            err=tostring(nCodeEnv),
+            syntaxErr=true,
+            diaList=json.array({} ),
+            luaContent=tostring(nCodeEnv),
         }
     end
     local nRuntime = DiagnosticRuntime.new(self)
     local nRunOkay, nExc = nRuntime:pmain(vName)
-    if not nRunOkay then
-        return {
-            err=tostring(nExc),
+    local nDiaList = nRuntime:getAllDiagnostic()[vName] or {}
+    local nAfterDiaList = {}
+    for i, dia in ipairs(nDiaList) do
+        nAfterDiaList[i] = {
+            msg = dia.msg,
+            severity = dia.severity,
+            node = {
+                l=dia.node.l,
+                c=dia.node.c,
+                path=dia.node.path
+            }  ,
         }
     end
-    local nDiaList = nRuntime:getAllDiagnostic()[vName]
     return {
-        content=nCodeEnv:genLuaCode()
+        syntaxErr=false,
+        diaList=json.array(nAfterDiaList),
+        luaContent=nCodeEnv:genLuaCode()
     }
 end
 
@@ -13836,7 +13857,7 @@ function SlowServer:getInitializeResult()
 		capabilities = {
 			textDocumentSync = {
 				openClose = true,
-				change = 2, -- 1 is non-incremental, 2 is incremental
+				change = 2,       
 				save = { includeText = true },
 			},
 		},
@@ -14012,61 +14033,61 @@ local ErrorCodes = {
 	InvalidParams = -32602;
 	InternalError = -32603;
 
-	--[[ reserved start ]]
+	   
 	jsonrpcReservedErrorRangeStart = -32099;
 
 
-	--[[
-	 * Error code indicating that a server received a notification or
-	 * request before the server has received the `initialize` request.
-	 *]]
+	
+	           
+	          
+	 
 	ServerNotInitialized = -32002;
 	UnknownErrorCode = -32001;
 
-	--[[ reserved end ]]
+	   
 	jsonrpcReservedErrorRangeEnd = -32000;
 
-	--[[ reserved start ]]
+	   
 	lspReservedErrorRangeStart = -32899;
 
-	--[[
-	 * A request failed but it was syntactically correct, e.g the
-	 * method name was known and the parameters were valid. The error
-	 * message should contain human readable information about why
-	 * the request failed.
-	 *
-	 * @since 3.17.0
-	 *]]
+	
+	           
+	            
+	         
+	    
+	 
+	   
+	 
 	RequestFailed = -32803;
 
-	--[[**
-	 * The server cancelled the request. This error code should
-	 * only be used for requests that explicitly support being
-	 * server cancellable.
-	 *
-	 * @since 3.17.0
-	 *]]
+	
+	          
+	          
+	   
+	 
+	   
+	 
 	ServerCancelled = -32802;
 
-	--[[**
-	 * The server detected that the content of a document got
-	 * modified outside normal conditions. A server should
-	 * NOT send this error code if it detects a content change
-	 * in it unprocessed messages. The result even computed
-	 * on an older state might still be useful for the client.
-	 *
-	 * If a client decides that a result is not of any use anymore
-	 * the client should cancel the request.
-	 *]]
+	
+	           
+	        
+	            
+	         
+	            
+	 
+	              
+	       
+	 
 	ContentModified = -32801;
 
-	--[[**
-	 * The client has canceled a request and a server as detected
-	 * the cancel.
-	 *]]
+	
+	            
+	   
+	 
 	RequestCancelled = -32800;
 
-	--[[ reserved end ]]
+	   
 	lspReservedErrorRangeEnd = -32800;
 }
 
@@ -14383,7 +14404,7 @@ function RefineTerm:caseNotnil()
 	return reCase
 end
 
--- return VariableCase | nil
+    
 function RefineTerm:caseFalse()
 	local reCase = nil
 	self._type:falseType():foreach(function(vType)
@@ -14624,7 +14645,7 @@ function RetBuilder:ctor(vManager, vNode)
 end
 
 function RetBuilder:RetDots(vFirst, ...)
-	-- TODO check ... is type
+	     
 	local nTypeList = {vFirst, ...}
 	local nLen = #nTypeList
 	assert(nLen > 0, "RetDots must take at least 1 value")
@@ -14833,7 +14854,7 @@ function TermTuple:select(vContext, i)
 	for n=i,#self._list do
 		nList[#nList + 1] = self._list[n]
 	end
-	-- TODO check i in range
+	     
 	if self._auto then
 		return self._context:UTermTupleByTail(nList, self._tail)
 	else
@@ -15006,7 +15027,7 @@ local function TupleClass()
 				return false
 			end
 		end
-		-- TODO thinking more for nilable
+		     
 		for i=1, #vRightTypeTuple do
 			local nLeftType = self._list[i] or nLeftRepeatType
 			if not nLeftType then
@@ -15182,7 +15203,7 @@ function BaseAtomType:isSingleton()
 	return false
 end
 
---- meta method --------------
+   
 function BaseAtomType:meta_ipairs(vContext)
 	vContext:error(tostring(self).."'s meta_ipairs not implement")
 	return false
@@ -15241,7 +15262,7 @@ function BaseAtomType:meta_uop_some(vContext, vOper)
 	return self._manager.type.Number
 end
 
---- native method --------------
+   
 function BaseAtomType:native_next(vContext, vInitType)
 	error("native_next not implement")
 end
@@ -15321,7 +15342,7 @@ function BaseAtomType:putCompletion(vCompletion)
 end
 
 function BaseAtomType:setLocked()
-	-- do nothing
+	  
 end
 
 function BaseAtomType:findRequireStack()
@@ -15396,11 +15417,11 @@ function BaseReadyType:isReference()
 	return false
 end
 
-------------------------------------
-------------------------------------
--- relation functions --------------
-------------------------------------
-------------------------------------
+
+
+   
+
+
 
 function BaseReadyType:intersectAtom(vRight)
 	return self:assumeIntersectAtom(nil, vRight)
@@ -15474,11 +15495,11 @@ function BaseReadyType:assumeIntersectAtom(_, _)
 	return false
 end
 
-------------------------------------
-------------------------------------
--- part type functions -------------
-------------------------------------
-------------------------------------
+
+
+    
+
+
 function BaseReadyType:isNever()
 	return false
 end
@@ -15992,7 +16013,7 @@ function Truth:native_getmetatable(vContext)
 end
 
 function Truth:native_type()
-	-- TODO use TypeSet
+	   
 	return self._manager.type.String
 end
 
@@ -16523,9 +16544,9 @@ function FuncUnion:putAwait(vType)
 			self._notTypeFnDict = {}
 			self._typeFnDict = {}
 		end
-	-- TODO lua fn may be typefn or polyfn or openfn, deal by case TODO
+	              
 	elseif TypedFunction.is(vType) then
-		-- delete small struct
+		   
 		local nDeleteList = {}
 		for nTypeFn, _ in pairs(self._typeFnDict) do
 			if vType:includeAtom(nTypeFn) then
@@ -16542,7 +16563,7 @@ function FuncUnion:putAwait(vType)
 		end
 		self._typeFnDict[vType] = true
 	elseif TypedMemberFunction.is(vType) then
-		-- delete small struct
+		   
 		local nDeleteList = {}
 		for nTypeFn, _ in pairs(self._typeMfnDict) do
 			if vType:includeAtom(nTypeFn) then
@@ -16795,7 +16816,7 @@ function ObjectUnion:putAwait(vType)
 		self._openTableDict[vType] = true
 		return
 	end
-	-- delete smaller sealtable
+	   
 	local nDeleteList1 = {}
 	for nSealTable, _ in pairs(self._sealTableDict) do
 		if vType:includeAtom(nSealTable) then
@@ -16808,7 +16829,7 @@ function ObjectUnion:putAwait(vType)
 	if SealTable.is(vType) then
 		self._sealTableDict[vType] = true
 	elseif TypedObject.is(vType) then
-		-- delete smaller typedObject
+		   
 		local nDeleteList2 = {}
 		for nTypedObject, _ in pairs(self._typedObjectDict) do
 			if vType:includeAtom(nTypedObject) then
