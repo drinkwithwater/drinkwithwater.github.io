@@ -2,20 +2,22 @@
 <html>
 	<head>
 		<script>
-			var luaState = null;
 			var webpackModule = {
 				monaco:null,
 				thlua_syntax:null,
 			};
 			var initFunction = null;
+			var initWasm = false;
+			var initDocument = false;
 			var Module = {
 				onRuntimeInitialized:function(){
-					luaState = new Module.CallInstance(THLUA_SCRIPT);
+					initWasm = true;
 					initFunction();
 				}
 			}
 			document.onreadystatechange=function(){
 				if(document.readyState=="complete") {
+					initDocument = true;
 					initFunction();
 				}
 			}

@@ -4,7 +4,12 @@ initFunction = function(){
 	if(initDone) {
 		return;
 	}
-	initDone = true;
+	if(initWasm && initDocument) {
+		initDone = true;
+	} else {
+		return;
+	}
+	var luaState = new Module.CallInstance(THLUA_SCRIPT);
 	var monaco = webpackModule.monaco
 	var thlua_syntax = webpackModule.thlua_syntax
 	var app = new Vue({
