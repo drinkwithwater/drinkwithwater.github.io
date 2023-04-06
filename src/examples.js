@@ -1,4 +1,4 @@
-var THLUA_EXAMPLES=[{name:'class_function',content:(function(){/* ,
+var THLUA_EXAMPLES={'class_function':(function(){/* 
 -- define a class function
 const function:class(let.Hello) make(a:Integer, b:String)
 	-- declare self table with .class
@@ -16,7 +16,7 @@ const t:Any = 321
 if isHello(t) then
 	(@print($t.a))
 end
-, */}).toString().slice(14, -3)},{name:'hello',content:(function(){/* ,
+ */}).toString().slice(14, -3),'hello':(function(){/* 
 -- define a const variable
 const constHello = "hello world"
 
@@ -36,7 +36,7 @@ const i:Integer = 321
 -- type cast
 const i = 321 @ Integer
 
-, */}).toString().slice(14, -3)},{name:'hint_space',content:(function(){/* ,
+ */}).toString().slice(14, -3),'hint_space':(function(){/* 
 
 
 const dosth = 321
@@ -71,7 +71,7 @@ print($dosth)
 print($(@A).fds)
 
 end)
-, */}).toString().slice(14, -3)},{name:'multi_ret',content:(function(){/* ,
+ */}).toString().slice(14, -3),'multi_ret':(function(){/* 
 -- define a function with multi return type
 const function multiReturn(a:Integer):Ret(True, Integer):Ret(False, String)
 	if math.random() > 0.5 then
@@ -88,7 +88,7 @@ if ok then
 else
 	(@print($data))
 end
-, */}).toString().slice(14, -3)},{name:'object_oriented',content:(function(){/* ,
+ */}).toString().slice(14, -3),'object_oriented':(function(){/* 
 const class2meta={}
 const meta2class={}
 
@@ -184,7 +184,7 @@ function Extend:hello()
 end
 
 const e = Extend.new(321)
-, */}).toString().slice(14, -3)},{name:'open_type',content:(function(){/* ,
+ */}).toString().slice(14, -3),'open_type':(function(){/* 
 (@let.name=namespace())
 
 -- define an open function, open function will expand stack for each apply
@@ -217,7 +217,7 @@ const obj2 = cls2.new()
 
 (@print($obj1:getData()))
 (@print($obj2:getData()))
-, */}).toString().slice(14, -3)},{name:'type_cast',content:(function(){/* ,
+ */}).toString().slice(14, -3),'type_cast':(function(){/* 
 -- use @ for covariance cast, this is safe
 local castToA = 321 @ Integer
 
@@ -252,4 +252,4 @@ const function:class(let.Hello) make(a:Integer, b:String)
 		b=b,
 	}
 end
-, */}).toString().slice(14, -3)}]
+ */}).toString().slice(14, -3)}

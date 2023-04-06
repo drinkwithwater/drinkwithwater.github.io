@@ -502,7 +502,7 @@ function initRuntime() {
 
   checkStackCookie();
 
-
+  
 if (!Module["noFSInit"] && !FS.init.initialized)
   FS.init();
 FS.ignorePermissions = false;
@@ -837,7 +837,7 @@ function createWasm() {
     // This assertion doesn't hold when emscripten is run in --post-link
     // mode.
     // TODO(sbc): Read INITIAL_MEMORY out of the wasm file in post-link mode.
-    //assert(wasmMemory.buffer.byteLength === 16777216);
+    //assert(wasmMemory.buffer.byteLength === 67108864);
     updateMemoryViews();
 
     wasmTable = Module['asm']['__indirect_function_table'];
@@ -1007,7 +1007,7 @@ function dbg(text) {
       }
     }
 
-
+  
     /**
      * @param {number} ptr
      * @param {string} type
@@ -1032,7 +1032,7 @@ function dbg(text) {
       return '0x' + ptr.toString(16).padStart(8, '0');
     }
 
-
+  
     /**
      * @param {number} ptr
      * @param {number} value
@@ -1063,7 +1063,7 @@ function dbg(text) {
     }
 
   var UTF8Decoder = typeof TextDecoder != 'undefined' ? new TextDecoder('utf8') : undefined;
-
+  
     /**
      * Given a pointer 'idx' to a null-terminated UTF8-encoded string in the given
      * array that contains uint8 values, returns a copy of that string as a
@@ -1082,7 +1082,7 @@ function dbg(text) {
       // (As a tiny code save trick, compare endPtr against endIdx using a negation,
       // so that undefined means Infinity)
       while (heapOrArray[endPtr] && !(endPtr >= endIdx)) ++endPtr;
-
+  
       if (endPtr - idx > 16 && heapOrArray.buffer && UTF8Decoder) {
         return UTF8Decoder.decode(heapOrArray.subarray(idx, endPtr));
       }
@@ -1105,7 +1105,7 @@ function dbg(text) {
           if ((u0 & 0xF8) != 0xF0) warnOnce('Invalid UTF-8 leading byte ' + ptrToString(u0) + ' encountered when deserializing a UTF-8 string in wasm memory to a JS string!');
           u0 = ((u0 & 7) << 18) | (u1 << 12) | (u2 << 6) | (heapOrArray[idx++] & 63);
         }
-
+  
         if (u0 < 0x10000) {
           str += String.fromCharCode(u0);
         } else {
@@ -1115,8 +1115,8 @@ function dbg(text) {
       }
       return str;
     }
-
-
+  
+  
     /**
      * Given a pointer 'ptr' to a null-terminated UTF8-encoded string in the
      * emscripten HEAP, returns a copy of that string as a Javascript String object.
@@ -1144,45 +1144,45 @@ function dbg(text) {
   function ExceptionInfo(excPtr) {
       this.excPtr = excPtr;
       this.ptr = excPtr - 24;
-
+  
       this.set_type = function(type) {
         HEAPU32[(((this.ptr)+(4))>>2)] = type;
       };
-
+  
       this.get_type = function() {
         return HEAPU32[(((this.ptr)+(4))>>2)];
       };
-
+  
       this.set_destructor = function(destructor) {
         HEAPU32[(((this.ptr)+(8))>>2)] = destructor;
       };
-
+  
       this.get_destructor = function() {
         return HEAPU32[(((this.ptr)+(8))>>2)];
       };
-
+  
       this.set_refcount = function(refcount) {
         HEAP32[((this.ptr)>>2)] = refcount;
       };
-
+  
       this.set_caught = function (caught) {
         caught = caught ? 1 : 0;
         HEAP8[(((this.ptr)+(12))>>0)] = caught;
       };
-
+  
       this.get_caught = function () {
         return HEAP8[(((this.ptr)+(12))>>0)] != 0;
       };
-
+  
       this.set_rethrown = function (rethrown) {
         rethrown = rethrown ? 1 : 0;
         HEAP8[(((this.ptr)+(13))>>0)] = rethrown;
       };
-
+  
       this.get_rethrown = function () {
         return HEAP8[(((this.ptr)+(13))>>0)] != 0;
       };
-
+  
       // Initialize native structure fields. Should be called once after allocated.
       this.init = function(type, destructor) {
         this.set_adjusted_ptr(0);
@@ -1192,12 +1192,12 @@ function dbg(text) {
         this.set_caught(false);
         this.set_rethrown(false);
       }
-
+  
       this.add_ref = function() {
         var value = HEAP32[((this.ptr)>>2)];
         HEAP32[((this.ptr)>>2)] = value + 1;
       };
-
+  
       // Returns true if last reference released.
       this.release_ref = function() {
         var prev = HEAP32[((this.ptr)>>2)];
@@ -1205,15 +1205,15 @@ function dbg(text) {
         assert(prev > 0);
         return prev === 1;
       };
-
+  
       this.set_adjusted_ptr = function(adjustedPtr) {
         HEAPU32[(((this.ptr)+(16))>>2)] = adjustedPtr;
       };
-
+  
       this.get_adjusted_ptr = function() {
         return HEAPU32[(((this.ptr)+(16))>>2)];
       };
-
+  
       // Get pointer which is expected to be received by catch clause in C++ code. It may be adjusted
       // when the pointer is casted to some of the exception object base classes (e.g. when virtual
       // inheritance is used). When a pointer is thrown this method should return the thrown pointer
@@ -1230,9 +1230,9 @@ function dbg(text) {
         return this.excPtr;
       };
     }
-
+  
   var exceptionLast = 0;
-
+  
   var uncaughtExceptionCount = 0;
   function ___cxa_throw(ptr, type, destructor) {
       var info = new ExceptionInfo(ptr);
@@ -1307,7 +1307,7 @@ function dbg(text) {
       },join2:(l, r) => {
         return PATH.normalize(l + '/' + r);
       }};
-
+  
   function initRandomFill() {
       if (typeof crypto == 'object' && typeof crypto['getRandomValues'] == 'function') {
         // for modern web browsers
@@ -1340,9 +1340,9 @@ function dbg(text) {
       // Lazily init on the first invocation.
       return (randomFill = initRandomFill())(view);
     }
-
-
-
+  
+  
+  
   var PATH_FS = {resolve:function() {
         var resolvedPath = '',
           resolvedAbsolute = false;
@@ -1393,8 +1393,8 @@ function dbg(text) {
         outputParts = outputParts.concat(toParts.slice(samePartsLength));
         return outputParts.join('/');
       }};
-
-
+  
+  
   function lengthBytesUTF8(str) {
       var len = 0;
       for (var i = 0; i < str.length; ++i) {
@@ -1415,13 +1415,13 @@ function dbg(text) {
       }
       return len;
     }
-
+  
   function stringToUTF8Array(str, heap, outIdx, maxBytesToWrite) {
       // Parameter maxBytesToWrite is not optional. Negative values, 0, null,
       // undefined and false each don't write out any bytes.
       if (!(maxBytesToWrite > 0))
         return 0;
-
+  
       var startIdx = outIdx;
       var endIdx = outIdx + maxBytesToWrite - 1; // -1 for string null terminator.
       for (var i = 0; i < str.length; ++i) {
@@ -1550,7 +1550,7 @@ function dbg(text) {
               var BUFSIZE = 256;
               var buf = Buffer.alloc(BUFSIZE);
               var bytesRead = 0;
-
+  
               try {
                 bytesRead = fs.readSync(process.stdin.fd, buf, 0, BUFSIZE, -1);
               } catch(e) {
@@ -1559,7 +1559,7 @@ function dbg(text) {
                 if (e.toString().includes('EOF')) bytesRead = 0;
                 else throw e;
               }
-
+  
               if (bytesRead > 0) {
                 result = buf.slice(0, bytesRead).toString('utf-8');
               } else {
@@ -1611,13 +1611,13 @@ function dbg(text) {
             tty.output = [];
           }
         }}};
-
-
+  
+  
   function zeroMemory(address, size) {
       HEAPU8.fill(0, address, address + size);
       return address;
     }
-
+  
   function alignMemory(size, alignment) {
       assert(alignment, "alignment argument is required");
       return Math.ceil(size / alignment) * alignment;
@@ -1693,7 +1693,7 @@ function dbg(text) {
           // When the byte data of the file is populated, this will point to either a typed array, or a normal JS array. Typed arrays are preferred
           // for performance, and used by default. However, typed arrays are not resizable like normal JS arrays are, so there is a small disk size
           // penalty involved for appending file writes that continuously grow a file similar to std::vector capacity vs used -scheme.
-          node.contents = null;
+          node.contents = null; 
         } else if (FS.isLink(node.mode)) {
           node.node_ops = MEMFS.ops_table.link.node;
           node.stream_ops = MEMFS.ops_table.link.stream;
@@ -1841,11 +1841,18 @@ function dbg(text) {
         },write:function(stream, buffer, offset, length, position, canOwn) {
           // The data buffer should be a typed array view
           assert(!(buffer instanceof ArrayBuffer));
-
+          // If the buffer is located in main memory (HEAP), and if
+          // memory can grow, we can't hold on to references of the
+          // memory buffer, as they may get invalidated. That means we
+          // need to do copy its contents.
+          if (buffer.buffer === HEAP8.buffer) {
+            canOwn = false;
+          }
+  
           if (!length) return 0;
           var node = stream.node;
           node.timestamp = Date.now();
-
+  
           if (buffer.subarray && (!node.contents || node.contents.subarray)) { // This write is from a typed array to a typed array?
             if (canOwn) {
               assert(position === 0, 'canOwn must imply no weird position inside the file');
@@ -1861,7 +1868,7 @@ function dbg(text) {
               return length;
             }
           }
-
+  
           // Appending to an existing file and we need to reallocate, or source data did not come as a typed array.
           MEMFS.expandFileStorage(node, position+length);
           if (node.contents.subarray && buffer.subarray) {
@@ -1925,7 +1932,7 @@ function dbg(text) {
           // should we check if bytesWritten and length are the same?
           return 0;
         }}};
-
+  
   /** @param {boolean=} noRunDep */
   function asyncLoad(url, onload, onerror, noRunDep) {
       var dep = !noRunDep ? getUniqueRunDependency('al ' + url) : '';
@@ -1942,14 +1949,14 @@ function dbg(text) {
       });
       if (dep) addRunDependency(dep);
     }
-
-
-
-
+  
+  
+  
+  
   var ERRNO_MESSAGES = {0:"Success",1:"Arg list too long",2:"Permission denied",3:"Address already in use",4:"Address not available",5:"Address family not supported by protocol family",6:"No more processes",7:"Socket already connected",8:"Bad file number",9:"Trying to read unreadable message",10:"Mount device busy",11:"Operation canceled",12:"No children",13:"Connection aborted",14:"Connection refused",15:"Connection reset by peer",16:"File locking deadlock error",17:"Destination address required",18:"Math arg out of domain of func",19:"Quota exceeded",20:"File exists",21:"Bad address",22:"File too large",23:"Host is unreachable",24:"Identifier removed",25:"Illegal byte sequence",26:"Connection already in progress",27:"Interrupted system call",28:"Invalid argument",29:"I/O error",30:"Socket is already connected",31:"Is a directory",32:"Too many symbolic links",33:"Too many open files",34:"Too many links",35:"Message too long",36:"Multihop attempted",37:"File or path name too long",38:"Network interface is not configured",39:"Connection reset by network",40:"Network is unreachable",41:"Too many open files in system",42:"No buffer space available",43:"No such device",44:"No such file or directory",45:"Exec format error",46:"No record locks available",47:"The link has been severed",48:"Not enough core",49:"No message of desired type",50:"Protocol not available",51:"No space left on device",52:"Function not implemented",53:"Socket is not connected",54:"Not a directory",55:"Directory not empty",56:"State not recoverable",57:"Socket operation on non-socket",59:"Not a typewriter",60:"No such device or address",61:"Value too large for defined data type",62:"Previous owner died",63:"Not super-user",64:"Broken pipe",65:"Protocol error",66:"Unknown protocol",67:"Protocol wrong type for socket",68:"Math result not representable",69:"Read only file system",70:"Illegal seek",71:"No such process",72:"Stale file handle",73:"Connection timed out",74:"Text file busy",75:"Cross-device link",100:"Device not a stream",101:"Bad font file fmt",102:"Invalid slot",103:"Invalid request code",104:"No anode",105:"Block device required",106:"Channel number out of range",107:"Level 3 halted",108:"Level 3 reset",109:"Link number out of range",110:"Protocol driver not attached",111:"No CSI structure available",112:"Level 2 halted",113:"Invalid exchange",114:"Invalid request descriptor",115:"Exchange full",116:"No data (for no delay io)",117:"Timer expired",118:"Out of streams resources",119:"Machine is not on the network",120:"Package not installed",121:"The object is remote",122:"Advertise error",123:"Srmount error",124:"Communication error on send",125:"Cross mount point (not really error)",126:"Given log. name not unique",127:"f.d. invalid for this operation",128:"Remote address changed",129:"Can   access a needed shared lib",130:"Accessing a corrupted shared lib",131:".lib section in a.out corrupted",132:"Attempting to link in too many libs",133:"Attempting to exec a shared library",135:"Streams pipe error",136:"Too many users",137:"Socket type not supported",138:"Not supported",139:"Protocol family not supported",140:"Can't send after socket shutdown",141:"Too many references",142:"Host is down",148:"No medium (in tape drive)",156:"Level 2 not synchronized"};
-
+  
   var ERRNO_CODES = {};
-
+  
   function demangle(func) {
       warnOnce('warning: build with -sDEMANGLE_SUPPORT to link in libcxxabi demangling');
       return func;
@@ -1965,43 +1972,43 @@ function dbg(text) {
     }
   var FS = {root:null,mounts:[],devices:{},streams:[],nextInode:1,nameTable:null,currentPath:"/",initialized:false,ignorePermissions:true,ErrnoError:null,genericErrors:{},filesystems:null,syncFSRequests:0,lookupPath:(path, opts = {}) => {
         path = PATH_FS.resolve(path);
-
+  
         if (!path) return { path: '', node: null };
-
+  
         var defaults = {
           follow_mount: true,
           recurse_count: 0
         };
         opts = Object.assign(defaults, opts)
-
+  
         if (opts.recurse_count > 8) {  // max recursive lookup of 8
           throw new FS.ErrnoError(32);
         }
-
+  
         // split the absolute path
         var parts = path.split('/').filter((p) => !!p);
-
+  
         // start at the root
         var current = FS.root;
         var current_path = '/';
-
+  
         for (var i = 0; i < parts.length; i++) {
           var islast = (i === parts.length-1);
           if (islast && opts.parent) {
             // stop resolving
             break;
           }
-
+  
           current = FS.lookupNode(current, parts[i]);
           current_path = PATH.join2(current_path, parts[i]);
-
+  
           // jump to the mount's root node if this is a mountpoint
           if (FS.isMountpoint(current)) {
             if (!islast || (islast && opts.follow_mount)) {
               current = current.mounted.root;
             }
           }
-
+  
           // by default, lookupPath will not follow a symlink if it is the final path component.
           // setting opts.follow = true will override this behavior.
           if (!islast || opts.follow) {
@@ -2009,17 +2016,17 @@ function dbg(text) {
             while (FS.isLink(current.mode)) {
               var link = FS.readlink(current_path);
               current_path = PATH_FS.resolve(PATH.dirname(current_path), link);
-
+  
               var lookup = FS.lookupPath(current_path, { recurse_count: opts.recurse_count + 1 });
               current = lookup.node;
-
+  
               if (count++ > 40) {  // limit max consecutive symlinks to 40 (SYMLOOP_MAX).
                 throw new FS.ErrnoError(32);
               }
             }
           }
         }
-
+  
         return { path: current_path, node: current };
       },getPath:(node) => {
         var path;
@@ -2034,7 +2041,7 @@ function dbg(text) {
         }
       },hashName:(parentid, name) => {
         var hash = 0;
-
+  
         for (var i = 0; i < name.length; i++) {
           hash = ((hash << 5) - hash + name.charCodeAt(i)) | 0;
         }
@@ -2074,9 +2081,9 @@ function dbg(text) {
       },createNode:(parent, name, mode, rdev) => {
         assert(typeof parent == 'object')
         var node = new FS.FSNode(parent, name, mode, rdev);
-
+  
         FS.hashAddNode(node);
-
+  
         return node;
       },destroyNode:(node) => {
         FS.hashRemoveNode(node);
@@ -2241,37 +2248,37 @@ function dbg(text) {
       },getDevice:(dev) => FS.devices[dev],getMounts:(mount) => {
         var mounts = [];
         var check = [mount];
-
+  
         while (check.length) {
           var m = check.pop();
-
+  
           mounts.push(m);
-
+  
           check.push.apply(check, m.mounts);
         }
-
+  
         return mounts;
       },syncfs:(populate, callback) => {
         if (typeof populate == 'function') {
           callback = populate;
           populate = false;
         }
-
+  
         FS.syncFSRequests++;
-
+  
         if (FS.syncFSRequests > 1) {
           err('warning: ' + FS.syncFSRequests + ' FS.syncfs operations in flight at once, probably just doing extra work');
         }
-
+  
         var mounts = FS.getMounts(FS.root.mount);
         var completed = 0;
-
+  
         function doCallback(errCode) {
           assert(FS.syncFSRequests > 0);
           FS.syncFSRequests--;
           return callback(errCode);
         }
-
+  
         function done(errCode) {
           if (errCode) {
             if (!done.errored) {
@@ -2284,7 +2291,7 @@ function dbg(text) {
             doCallback(null);
           }
         };
-
+  
         // sync all mounts
         mounts.forEach((mount) => {
           if (!mount.type.syncfs) {
@@ -2301,78 +2308,78 @@ function dbg(text) {
         var root = mountpoint === '/';
         var pseudo = !mountpoint;
         var node;
-
+  
         if (root && FS.root) {
           throw new FS.ErrnoError(10);
         } else if (!root && !pseudo) {
           var lookup = FS.lookupPath(mountpoint, { follow_mount: false });
-
+  
           mountpoint = lookup.path;  // use the absolute path
           node = lookup.node;
-
+  
           if (FS.isMountpoint(node)) {
             throw new FS.ErrnoError(10);
           }
-
+  
           if (!FS.isDir(node.mode)) {
             throw new FS.ErrnoError(54);
           }
         }
-
+  
         var mount = {
           type: type,
           opts: opts,
           mountpoint: mountpoint,
           mounts: []
         };
-
+  
         // create a root node for the fs
         var mountRoot = type.mount(mount);
         mountRoot.mount = mount;
         mount.root = mountRoot;
-
+  
         if (root) {
           FS.root = mountRoot;
         } else if (node) {
           // set as a mountpoint
           node.mounted = mount;
-
+  
           // add the new mount to the current mount's children
           if (node.mount) {
             node.mount.mounts.push(mount);
           }
         }
-
+  
         return mountRoot;
       },unmount:(mountpoint) => {
         var lookup = FS.lookupPath(mountpoint, { follow_mount: false });
-
+  
         if (!FS.isMountpoint(lookup.node)) {
           throw new FS.ErrnoError(28);
         }
-
+  
         // destroy the nodes for this mount, and all its child mounts
         var node = lookup.node;
         var mount = node.mounted;
         var mounts = FS.getMounts(mount);
-
+  
         Object.keys(FS.nameTable).forEach((hash) => {
           var current = FS.nameTable[hash];
-
+  
           while (current) {
             var next = current.name_next;
-
+  
             if (mounts.includes(current.mount)) {
               FS.destroyNode(current);
             }
-
+  
             current = next;
           }
         });
-
+  
         // no longer a mountpoint
         node.mounted = null;
-
+  
         // remove this mount from the child mounts
         var idx = node.mount.mounts.indexOf(mount);
         assert(idx !== -1);
@@ -2448,13 +2455,13 @@ function dbg(text) {
         var new_name = PATH.basename(new_path);
         // parents must exist
         var lookup, old_dir, new_dir;
-
+  
         // let the errors from non existant directories percolate up
         lookup = FS.lookupPath(old_path, { parent: true });
         old_dir = lookup.node;
         lookup = FS.lookupPath(new_path, { parent: true });
         new_dir = lookup.node;
-
+  
         if (!old_dir || !new_dir) throw new FS.ErrnoError(44);
         // need to be part of the same mount
         if (old_dir.mount !== new_dir.mount) {
@@ -2745,7 +2752,7 @@ function dbg(text) {
         }
         // we've already handled these, don't pass down to the underlying vfs
         flags &= ~(128 | 512 | 131072);
-
+  
         // register the stream with the filesystem
         var stream = FS.createStream({
           node: node,
@@ -3009,7 +3016,7 @@ function dbg(text) {
         // TODO deprecate the old functionality of a single
         // input / output callback and that utilizes FS.createDevice
         // and instead require a unique set of stream ops
-
+  
         // by default, we symlink the standard streams to the
         // default tty devices. however, if the standard streams
         // have been overwritten we create a unique device for
@@ -3029,7 +3036,7 @@ function dbg(text) {
         } else {
           FS.symlink('/dev/tty1', '/dev/stderr');
         }
-
+  
         // open default streams for the stdin, stdout and stderr devices
         var stdin = FS.open('/dev/stdin', 0);
         var stdout = FS.open('/dev/stdout', 1);
@@ -3059,7 +3066,7 @@ function dbg(text) {
           };
           this.setErrno(errno);
           this.message = ERRNO_MESSAGES[errno];
-
+  
           // Try to get a maximally helpful stack trace. On Node.js, getting Error.stack
           // now ensures it shows what we want.
           if (this.stack) {
@@ -3077,29 +3084,29 @@ function dbg(text) {
         });
       },staticInit:() => {
         FS.ensureErrnoError();
-
+  
         FS.nameTable = new Array(4096);
-
+  
         FS.mount(MEMFS, {}, '/');
-
+  
         FS.createDefaultDirectories();
         FS.createDefaultDevices();
         FS.createSpecialDirectories();
-
+  
         FS.filesystems = {
           'MEMFS': MEMFS,
         };
       },init:(input, output, error) => {
         assert(!FS.init.initialized, 'FS.init was previously called. If you want to initialize later with custom parameters, remove any earlier calls (note that one is automatically added to the generated code)');
         FS.init.initialized = true;
-
+  
         FS.ensureErrnoError();
-
+  
         // Allow Module.stdin etc. to provide defaults, if none explicitly passed to us here
         Module['stdin'] = input || Module['stdin'];
         Module['stdout'] = output || Module['stdout'];
         Module['stderr'] = error || Module['stderr'];
-
+  
         FS.createStandardStreams();
       },quit:() => {
         FS.init.initialized = false;
@@ -3290,27 +3297,27 @@ function dbg(text) {
           var header;
           var hasByteServing = (header = xhr.getResponseHeader("Accept-Ranges")) && header === "bytes";
           var usesGzip = (header = xhr.getResponseHeader("Content-Encoding")) && header === "gzip";
-
+  
           var chunkSize = 1024*1024; // Chunk size in bytes
-
+  
           if (!hasByteServing) chunkSize = datalength;
-
+  
           // Function to get a range from the remote URL.
           var doXHR = (from, to) => {
             if (from > to) throw new Error("invalid range (" + from + ", " + to + ") or no bytes requested!");
             if (to > datalength-1) throw new Error("only " + datalength + " bytes available! programmer error!");
-
+  
             // TODO: Use mozResponseArrayBuffer, responseStream, etc. if available.
             var xhr = new XMLHttpRequest();
             xhr.open('GET', url, false);
             if (datalength !== chunkSize) xhr.setRequestHeader("Range", "bytes=" + from + "-" + to);
-
+  
             // Some hints to the browser that we want binary data.
             xhr.responseType = 'arraybuffer';
             if (xhr.overrideMimeType) {
               xhr.overrideMimeType('text/plain; charset=x-user-defined');
             }
-
+  
             xhr.send(null);
             if (!(xhr.status >= 200 && xhr.status < 300 || xhr.status === 304)) throw new Error("Couldn't load " + url + ". Status: " + xhr.status);
             if (xhr.response !== undefined) {
@@ -3329,7 +3336,7 @@ function dbg(text) {
             if (typeof lazyArray.chunks[chunkNum] == 'undefined') throw new Error('doXHR failed!');
             return lazyArray.chunks[chunkNum];
           });
-
+  
           if (usesGzip || !datalength) {
             // if the server uses gzip or doesn't supply the length, we have to download the whole file to get the (uncompressed) length
             chunkSize = datalength = 1; // this will force getter(0)/doXHR do download the whole file
@@ -3337,7 +3344,7 @@ function dbg(text) {
             chunkSize = datalength;
             out("LazyFiles on gzip forces download of the whole file when length is accessed");
           }
-
+  
           this._length = datalength;
           this._chunkSize = chunkSize;
           this.lengthKnown = true;
@@ -3363,12 +3370,12 @@ function dbg(text) {
               }
             }
           });
-
+  
           var properties = { isDevice: false, contents: lazyArray };
         } else {
           var properties = { isDevice: false, url: url };
         }
-
+  
         var node = FS.createFile(parent, name, properties, canRead, canWrite);
         // This is a total hack, but I want to get this lazy file code out of the
         // core of MEMFS. If we want to keep this lazy file concept I feel it should
@@ -3470,7 +3477,7 @@ function dbg(text) {
       },standardizePath:() => {
         abort('FS.standardizePath has been removed; use PATH.normalize instead');
       }};
-
+  
   var SYSCALLS = {DEFAULT_POLLMASK:5,calculateAt:function(dirfd, path, allowEmpty) {
         if (PATH.isAbs(path)) {
           return path;
@@ -3546,7 +3553,7 @@ function dbg(text) {
       }};
   function ___syscall_dup3(fd, suggestFD, flags) {
   try {
-
+  
       var old = SYSCALLS.getStreamFromFD(fd);
       assert(!flags);
       if (old.fd === suggestFD) return -28;
@@ -3563,11 +3570,11 @@ function dbg(text) {
       HEAP32[((___errno_location())>>2)] = value;
       return value;
     }
-
+  
   function ___syscall_fcntl64(fd, cmd, varargs) {
   SYSCALLS.varargs = varargs;
   try {
-
+  
       var stream = SYSCALLS.getStreamFromFD(fd);
       switch (cmd) {
         case 0: {
@@ -3591,7 +3598,7 @@ function dbg(text) {
         }
         case 5:
         /* case 5: Currently in musl F_GETLK64 has same value as F_GETLK, so omitted to avoid duplicate case blocks. If that changes, uncomment this */ {
-
+          
           var arg = SYSCALLS.get();
           var offset = 0;
           // We're always unlocked.
@@ -3602,8 +3609,8 @@ function dbg(text) {
         case 7:
         /* case 6: Currently in musl F_SETLK64 has same value as F_SETLK, so omitted to avoid duplicate case blocks. If that changes, uncomment this */
         /* case 7: Currently in musl F_SETLKW64 has same value as F_SETLKW, so omitted to avoid duplicate case blocks. If that changes, uncomment this */
-
-
+          
+          
           return 0; // Pretend that the locking is successful.
         case 16:
         case 8:
@@ -3625,7 +3632,7 @@ function dbg(text) {
   function ___syscall_ioctl(fd, op, varargs) {
   SYSCALLS.varargs = varargs;
   try {
-
+  
       var stream = SYSCALLS.getStreamFromFD(fd);
       switch (op) {
         case 21509:
@@ -3679,7 +3686,7 @@ function dbg(text) {
 
   function ___syscall_lstat64(path, buf) {
   try {
-
+  
       path = SYSCALLS.getStr(path);
       return SYSCALLS.doStat(FS.lstat, path, buf);
     } catch (e) {
@@ -3691,7 +3698,7 @@ function dbg(text) {
   function ___syscall_openat(dirfd, path, flags, varargs) {
   SYSCALLS.varargs = varargs;
   try {
-
+  
       path = SYSCALLS.getStr(path);
       path = SYSCALLS.calculateAt(dirfd, path);
       var mode = varargs ? SYSCALLS.get() : 0;
@@ -3704,7 +3711,7 @@ function dbg(text) {
 
   function ___syscall_renameat(olddirfd, oldpath, newdirfd, newpath) {
   try {
-
+  
       oldpath = SYSCALLS.getStr(oldpath);
       newpath = SYSCALLS.getStr(newpath);
       oldpath = SYSCALLS.calculateAt(olddirfd, oldpath);
@@ -3719,7 +3726,7 @@ function dbg(text) {
 
   function ___syscall_rmdir(path) {
   try {
-
+  
       path = SYSCALLS.getStr(path);
       FS.rmdir(path);
       return 0;
@@ -3731,7 +3738,7 @@ function dbg(text) {
 
   function ___syscall_unlinkat(dirfd, path, flags) {
   try {
-
+  
       path = SYSCALLS.getStr(path);
       path = SYSCALLS.calculateAt(dirfd, path);
       if (flags === 0) {
@@ -3760,7 +3767,7 @@ function dbg(text) {
               throw new TypeError('Unknown type size: ' + size);
       }
     }
-
+  
   function embind_init_charCodes() {
       var codes = new Array(256);
       for (var i = 0; i < 256; ++i) {
@@ -3777,15 +3784,15 @@ function dbg(text) {
       }
       return ret;
     }
-
+  
   var awaitingDependencies = {};
-
+  
   var registeredTypes = {};
-
+  
   var typeDependencies = {};
-
+  
   var char_0 = 48;
-
+  
   var char_9 = 57;
   function makeLegalFunctionName(name) {
       if (undefined === name) {
@@ -3812,7 +3819,7 @@ function dbg(text) {
       var errorClass = createNamedFunction(errorName, function(message) {
         this.name = errorName;
         this.message = message;
-
+  
         var stack = (new Error(message)).stack;
         if (stack !== undefined) {
           this.stack = this.toString() + '\n' +
@@ -3828,17 +3835,17 @@ function dbg(text) {
           return this.name + ': ' + this.message;
         }
       };
-
+  
       return errorClass;
     }
   var BindingError = undefined;
   function throwBindingError(message) {
       throw new BindingError(message);
     }
-
-
-
-
+  
+  
+  
+  
   var InternalError = undefined;
   function throwInternalError(message) {
       throw new InternalError(message);
@@ -3847,7 +3854,7 @@ function dbg(text) {
       myTypes.forEach(function(type) {
           typeDependencies[type] = dependentTypes;
       });
-
+  
       function onComplete(typeConverters) {
           var myTypeConverters = getTypeConverters(typeConverters);
           if (myTypeConverters.length !== myTypes.length) {
@@ -3857,7 +3864,7 @@ function dbg(text) {
               registerType(myTypes[i], myTypeConverters[i]);
           }
       }
-
+  
       var typeConverters = new Array(dependentTypes.length);
       var unregisteredTypes = [];
       var registered = 0;
@@ -3887,7 +3894,7 @@ function dbg(text) {
       if (!('argPackAdvance' in registeredInstance)) {
           throw new TypeError('registerType registeredInstance requires argPackAdvance');
       }
-
+  
       var name = registeredInstance.name;
       if (!rawType) {
           throwBindingError('type "' + name + '" must have a positive integer typeid pointer');
@@ -3899,10 +3906,10 @@ function dbg(text) {
               throwBindingError("Cannot register type '" + name + "' twice");
           }
       }
-
+  
       registeredTypes[rawType] = registeredInstance;
       delete typeDependencies[rawType];
-
+  
       if (awaitingDependencies.hasOwnProperty(rawType)) {
         var callbacks = awaitingDependencies[rawType];
         delete awaitingDependencies[rawType];
@@ -3911,7 +3918,7 @@ function dbg(text) {
     }
   function __embind_register_bool(rawType, name, size, trueValue, falseValue) {
       var shift = getShiftFromSize(size);
-
+  
       name = readLatin1String(name);
       registerType(rawType, {
           name: name,
@@ -3942,7 +3949,7 @@ function dbg(text) {
       });
     }
 
-
+  
   function ClassHandle_isAliasOf(other) {
       if (!(this instanceof ClassHandle)) {
         return false;
@@ -3950,25 +3957,25 @@ function dbg(text) {
       if (!(other instanceof ClassHandle)) {
         return false;
       }
-
+  
       var leftClass = this.$$.ptrType.registeredClass;
       var left = this.$$.ptr;
       var rightClass = other.$$.ptrType.registeredClass;
       var right = other.$$.ptr;
-
+  
       while (leftClass.baseClass) {
         left = leftClass.upcast(left);
         leftClass = leftClass.baseClass;
       }
-
+  
       while (rightClass.baseClass) {
         right = rightClass.upcast(right);
         rightClass = rightClass.baseClass;
       }
-
+  
       return leftClass === rightClass && left === right;
     }
-
+  
   function shallowCopyInternalPointer(o) {
       return {
         count: o.count,
@@ -3980,18 +3987,18 @@ function dbg(text) {
         smartPtrType: o.smartPtrType,
       };
     }
-
+  
   function throwInstanceAlreadyDeleted(obj) {
       function getInstanceTypeName(handle) {
         return handle.$$.ptrType.registeredClass.name;
       }
       throwBindingError(getInstanceTypeName(obj) + ' instance already deleted');
     }
-
+  
   var finalizationRegistry = false;
-
+  
   function detachFinalizer(handle) {}
-
+  
   function runDestructor($$) {
       if ($$.smartPtr) {
         $$.smartPtrType.rawDestructor($$.smartPtr);
@@ -4006,7 +4013,7 @@ function dbg(text) {
         runDestructor($$);
       }
     }
-
+  
   function downcastPointer(ptr, ptrClass, desiredClass) {
       if (ptrClass === desiredClass) {
         return ptr;
@@ -4014,20 +4021,20 @@ function dbg(text) {
       if (undefined === desiredClass.baseClass) {
         return null; // no conversion
       }
-
+  
       var rv = downcastPointer(ptr, ptrClass, desiredClass.baseClass);
       if (rv === null) {
         return null;
       }
       return desiredClass.downcast(rv);
     }
-
+  
   var registeredPointers = {};
-
+  
   function getInheritedInstanceCount() {
       return Object.keys(registeredInstances).length;
     }
-
+  
   function getLiveInheritedInstances() {
       var rv = [];
       for (var k in registeredInstances) {
@@ -4037,7 +4044,7 @@ function dbg(text) {
       }
       return rv;
     }
-
+  
   var deletionQueue = [];
   function flushPendingDeletes() {
       while (deletionQueue.length) {
@@ -4046,10 +4053,10 @@ function dbg(text) {
         obj['delete']();
       }
     }
-
+  
   var delayFunction = undefined;
-
-
+  
+  
   function setDelayFunction(fn) {
       delayFunction = fn;
       if (deletionQueue.length && delayFunction) {
@@ -4063,7 +4070,7 @@ function dbg(text) {
       Module['setDelayFunction'] = setDelayFunction;
     }
   var registeredInstances = {};
-
+  
   function getBasestPointer(class_, ptr) {
       if (ptr === undefined) {
           throwBindingError('ptr should not be undefined');
@@ -4078,8 +4085,8 @@ function dbg(text) {
       ptr = getBasestPointer(class_, ptr);
       return registeredInstances[ptr];
     }
-
-
+  
+  
   function makeClassHandle(prototype, record) {
       if (!record.ptrType || !record.ptr) {
         throwInternalError('makeClassHandle requires ptr and ptrType');
@@ -4098,14 +4105,14 @@ function dbg(text) {
     }
   function RegisteredPointer_fromWireType(ptr) {
       // ptr is a raw pointer (or a raw smartpointer)
-
+  
       // rawPointer is a maybe-null raw pointer
       var rawPointer = this.getPointee(ptr);
       if (!rawPointer) {
         this.destructor(ptr);
         return null;
       }
-
+  
       var registeredInstance = getInheritedInstance(this.registeredClass, rawPointer);
       if (undefined !== registeredInstance) {
         // JS object has been neutered, time to repopulate it
@@ -4121,7 +4128,7 @@ function dbg(text) {
           return rv;
         }
       }
-
+  
       function makeDefaultHandle() {
         if (this.isSmartPointer) {
           return makeClassHandle(this.registeredClass.instancePrototype, {
@@ -4137,13 +4144,13 @@ function dbg(text) {
           });
         }
       }
-
+  
       var actualType = this.registeredClass.getActualType(rawPointer);
       var registeredPointerRecord = registeredPointers[actualType];
       if (!registeredPointerRecord) {
         return makeDefaultHandle.call(this);
       }
-
+  
       var toType;
       if (this.isConst) {
         toType = registeredPointerRecord.constPointerType;
@@ -4213,7 +4220,7 @@ function dbg(text) {
       if (!this.$$.ptr) {
         throwInstanceAlreadyDeleted(this);
       }
-
+  
       if (this.$$.preservePointerOnDelete) {
         this.$$.count.value += 1;
         return this;
@@ -4223,40 +4230,40 @@ function dbg(text) {
             value: shallowCopyInternalPointer(this.$$),
           }
         }));
-
+  
         clone.$$.count.value += 1;
         clone.$$.deleteScheduled = false;
         return clone;
       }
     }
-
-
-
-
+  
+  
+  
+  
   function ClassHandle_delete() {
       if (!this.$$.ptr) {
         throwInstanceAlreadyDeleted(this);
       }
-
+  
       if (this.$$.deleteScheduled && !this.$$.preservePointerOnDelete) {
         throwBindingError('Object already scheduled for deletion');
       }
-
+  
       detachFinalizer(this);
       releaseClassHandle(this.$$);
-
+  
       if (!this.$$.preservePointerOnDelete) {
         this.$$.smartPtr = undefined;
         this.$$.ptr = undefined;
       }
     }
-
+  
   function ClassHandle_isDeleted() {
       return !this.$$.ptr;
     }
-
-
-
+  
+  
+  
   function ClassHandle_deleteLater() {
       if (!this.$$.ptr) {
         throwInstanceAlreadyDeleted(this);
@@ -4280,9 +4287,9 @@ function dbg(text) {
     }
   function ClassHandle() {
     }
-
-
-
+  
+  
+  
   function ensureOverloadTable(proto, methodName, humanName) {
       if (undefined === proto[methodName].overloadTable) {
         var prevFunc = proto[methodName];
@@ -4299,14 +4306,14 @@ function dbg(text) {
         proto[methodName].overloadTable[prevFunc.argCount] = prevFunc;
       }
     }
-
+  
   /** @param {number=} numArguments */
   function exposePublicSymbol(name, value, numArguments) {
       if (Module.hasOwnProperty(name)) {
         if (undefined === numArguments || (undefined !== Module[name].overloadTable && undefined !== Module[name].overloadTable[numArguments])) {
           throwBindingError("Cannot register public name '" + name + "' twice");
         }
-
+  
         // We are exposing a function with the same name as an existing function. Create an overload table and a function selector
         // that routes between the two.
         ensureOverloadTable(Module, name, name);
@@ -4323,9 +4330,9 @@ function dbg(text) {
         }
       }
     }
-
-
-
+  
+  
+  
   /** @constructor */
   function RegisteredClass(name,
                                constructor,
@@ -4345,8 +4352,8 @@ function dbg(text) {
       this.downcast = downcast;
       this.pureVirtualFunctions = [];
     }
-
-
+  
+  
   function upcastPointer(ptr, ptrClass, desiredClass) {
       while (ptrClass !== desiredClass) {
         if (!ptrClass.upcast) {
@@ -4364,7 +4371,7 @@ function dbg(text) {
         }
         return 0;
       }
-
+  
       if (!handle.$$) {
         throwBindingError('Cannot pass "' + embindRepr(handle) + '" as a ' + this.name);
       }
@@ -4375,15 +4382,15 @@ function dbg(text) {
       var ptr = upcastPointer(handle.$$.ptr, handleClass, this.registeredClass);
       return ptr;
     }
-
-
+  
+  
   function genericPointerToWireType(destructors, handle) {
       var ptr;
       if (handle === null) {
         if (this.isReference) {
           throwBindingError('null is not a valid ' + this.name);
         }
-
+  
         if (this.isSmartPointer) {
           ptr = this.rawConstructor();
           if (destructors !== null) {
@@ -4394,7 +4401,7 @@ function dbg(text) {
           return 0;
         }
       }
-
+  
       if (!handle.$$) {
         throwBindingError('Cannot pass "' + embindRepr(handle) + '" as a ' + this.name);
       }
@@ -4406,7 +4413,7 @@ function dbg(text) {
       }
       var handleClass = handle.$$.ptrType.registeredClass;
       ptr = upcastPointer(handle.$$.ptr, handleClass, this.registeredClass);
-
+  
       if (this.isSmartPointer) {
         // TODO: this is not strictly true
         // We could support BY_EMVAL conversions from raw pointers to smart pointers
@@ -4414,7 +4421,7 @@ function dbg(text) {
         if (undefined === handle.$$.smartPtr) {
           throwBindingError('Passing raw pointer to smart pointer is illegal');
         }
-
+  
         switch (this.sharingPolicy) {
           case 0: // NONE
             // no upcasting
@@ -4424,11 +4431,11 @@ function dbg(text) {
               throwBindingError('Cannot convert argument of type ' + (handle.$$.smartPtrType ? handle.$$.smartPtrType.name : handle.$$.ptrType.name) + ' to parameter type ' + this.name);
             }
             break;
-
+  
           case 1: // INTRUSIVE
             ptr = handle.$$.smartPtr;
             break;
-
+  
           case 2: // BY_EMVAL
             if (handle.$$.smartPtrType === this) {
               ptr = handle.$$.smartPtr;
@@ -4445,15 +4452,15 @@ function dbg(text) {
               }
             }
             break;
-
+  
           default:
             throwBindingError('Unsupporting sharing policy');
         }
       }
       return ptr;
     }
-
-
+  
+  
   function nonConstNoSmartPtrRawPointerToWireType(destructors, handle) {
       if (handle === null) {
         if (this.isReference) {
@@ -4461,7 +4468,7 @@ function dbg(text) {
         }
         return 0;
       }
-
+  
       if (!handle.$$) {
         throwBindingError('Cannot pass "' + embindRepr(handle) + '" as a ' + this.name);
       }
@@ -4475,30 +4482,30 @@ function dbg(text) {
       var ptr = upcastPointer(handle.$$.ptr, handleClass, this.registeredClass);
       return ptr;
     }
-
+  
   function simpleReadValueFromPointer(pointer) {
       return this['fromWireType'](HEAP32[((pointer)>>2)]);
     }
-
+  
   function RegisteredPointer_getPointee(ptr) {
       if (this.rawGetPointee) {
         ptr = this.rawGetPointee(ptr);
       }
       return ptr;
     }
-
+  
   function RegisteredPointer_destructor(ptr) {
       if (this.rawDestructor) {
         this.rawDestructor(ptr);
       }
     }
-
+  
   function RegisteredPointer_deleteObject(handle) {
       if (handle !== null) {
         handle['delete']();
       }
     }
-
+  
   function init_RegisteredPointer() {
       RegisteredPointer.prototype.getPointee = RegisteredPointer_getPointee;
       RegisteredPointer.prototype.destructor = RegisteredPointer_destructor;
@@ -4520,7 +4527,7 @@ function dbg(text) {
       registeredClass,
       isReference,
       isConst,
-
+  
       // smart pointer properties
       isSmartPointer,
       pointeeType,
@@ -4534,7 +4541,7 @@ function dbg(text) {
       this.registeredClass = registeredClass;
       this.isReference = isReference;
       this.isConst = isConst;
-
+  
       // smart pointer properties
       this.isSmartPointer = isSmartPointer;
       this.pointeeType = pointeeType;
@@ -4543,7 +4550,7 @@ function dbg(text) {
       this.rawConstructor = rawConstructor;
       this.rawShare = rawShare;
       this.rawDestructor = rawDestructor;
-
+  
       if (!isSmartPointer && registeredClass.baseClass === undefined) {
         if (isConst) {
           this['toWireType'] = constNoSmartPtrRawPointerToWireType;
@@ -4560,7 +4567,7 @@ function dbg(text) {
         //       craftInvokerFunction altogether.
       }
     }
-
+  
   /** @param {number=} numArguments */
   function replacePublicSymbol(name, value, numArguments) {
       if (!Module.hasOwnProperty(name)) {
@@ -4575,9 +4582,9 @@ function dbg(text) {
         Module[name].argCount = numArguments;
       }
     }
-
-
-
+  
+  
+  
   function dynCallLegacy(sig, ptr, args) {
       assert(('dynCall_' + sig) in Module, 'bad function pointer type - dynCall function not found for sig \'' + sig + '\'');
       if (args && args.length) {
@@ -4589,9 +4596,9 @@ function dbg(text) {
       var f = Module['dynCall_' + sig];
       return args && args.length ? f.apply(null, [ptr].concat(args)) : f.call(null, ptr);
     }
-
+  
   var wasmTableMirror = [];
-
+  
   function getWasmTableEntry(funcPtr) {
       var func = wasmTableMirror[funcPtr];
       if (!func) {
@@ -4601,7 +4608,7 @@ function dbg(text) {
       assert(wasmTable.get(funcPtr) == func, "JavaScript-side Wasm function table mirror is out of date!");
       return func;
     }
-
+  
   /** @param {Object=} args */
   function dynCall(sig, ptr, args) {
       // Without WASM_BIGINT support we cannot directly call function with i64 as
@@ -4614,7 +4621,7 @@ function dbg(text) {
       var rtn = getWasmTableEntry(ptr).apply(null, args);
       return rtn;
     }
-
+  
   function getDynCaller(sig, ptr) {
       assert(sig.includes('j') || sig.includes('p'), 'getDynCaller should only be called with i64 sigs')
       var argCache = [];
@@ -4624,30 +4631,30 @@ function dbg(text) {
         return dynCall(sig, ptr, argCache);
       };
     }
-
-
+  
+  
   function embind__requireFunction(signature, rawFunction) {
       signature = readLatin1String(signature);
-
+  
       function makeDynCaller() {
         if (signature.includes('j')) {
           return getDynCaller(signature, rawFunction);
         }
         return getWasmTableEntry(rawFunction);
       }
-
+  
       var fp = makeDynCaller();
       if (typeof fp != "function") {
           throwBindingError("unknown function pointer with signature " + signature + ": " + rawFunction);
       }
       return fp;
     }
-
-
-
+  
+  
+  
   var UnboundTypeError = undefined;
-
-
+  
+  
   function getTypeName(type) {
       var ptr = ___getTypeName(type);
       var rv = readLatin1String(ptr);
@@ -4672,10 +4679,10 @@ function dbg(text) {
         seen[type] = true;
       }
       types.forEach(visit);
-
+  
       throw new UnboundTypeError(message + ': ' + unboundTypes.map(getTypeName).join([', ']));
     }
-
+  
   function __embind_register_class(rawType,
                                      rawPointerType,
                                      rawConstPointerType,
@@ -4699,18 +4706,18 @@ function dbg(text) {
       }
       rawDestructor = embind__requireFunction(destructorSignature, rawDestructor);
       var legalFunctionName = makeLegalFunctionName(name);
-
+  
       exposePublicSymbol(legalFunctionName, function() {
         // this code cannot run if baseClassRawType is zero
         throwUnboundTypeError('Cannot construct ' + name + ' due to unbound types', [baseClassRawType]);
       });
-
+  
       whenDependentTypesAreResolved(
         [rawType, rawPointerType, rawConstPointerType],
         baseClassRawType ? [baseClassRawType] : [],
         function(base) {
           base = base[0];
-
+  
           var baseClass;
           var basePrototype;
           if (baseClassRawType) {
@@ -4719,7 +4726,7 @@ function dbg(text) {
           } else {
             basePrototype = ClassHandle.prototype;
           }
-
+  
           var constructor = createNamedFunction(legalFunctionName, function() {
             if (Object.getPrototypeOf(this) !== instancePrototype) {
               throw new BindingError("Use 'new' to construct " + name);
@@ -4733,13 +4740,13 @@ function dbg(text) {
             }
             return body.apply(this, arguments);
           });
-
+  
           var instancePrototype = Object.create(basePrototype, {
             constructor: { value: constructor },
           });
-
+  
           constructor.prototype = instancePrototype;
-
+  
           var registeredClass = new RegisteredClass(name,
                                                     constructor,
                                                     instancePrototype,
@@ -4748,32 +4755,32 @@ function dbg(text) {
                                                     getActualType,
                                                     upcast,
                                                     downcast);
-
+  
           var referenceConverter = new RegisteredPointer(name,
                                                          registeredClass,
                                                          true,
                                                          false,
                                                          false);
-
+  
           var pointerConverter = new RegisteredPointer(name + '*',
                                                        registeredClass,
                                                        false,
                                                        false,
                                                        false);
-
+  
           var constPointerConverter = new RegisteredPointer(name + ' const*',
                                                             registeredClass,
                                                             false,
                                                             true,
                                                             false);
-
+  
           registeredPointers[rawType] = {
             pointerType: pointerConverter,
             constPointerType: constPointerConverter
           };
-
+  
           replacePublicSymbol(legalFunctionName, constructor);
-
+  
           return [referenceConverter, pointerConverter, constPointerConverter];
         }
       );
@@ -4788,8 +4795,8 @@ function dbg(text) {
       }
       return array;
     }
-
-
+  
+  
   function runDestructors(destructors) {
       while (destructors.length) {
         var ptr = destructors.pop();
@@ -4797,13 +4804,13 @@ function dbg(text) {
         del(ptr);
       }
     }
-
-
-
-
-
-
-
+  
+  
+  
+  
+  
+  
+  
   function newFunc(constructor, argumentList) {
       if (!(constructor instanceof Function)) {
         throw new TypeError('new_ called with constructor type ' + typeof(constructor) + " which is not a function");
@@ -4821,7 +4828,7 @@ function dbg(text) {
       var dummy = createNamedFunction(constructor.name || 'unknownFunctionName', function(){});
       dummy.prototype = constructor.prototype;
       var obj = new dummy;
-
+  
       var r = constructor.apply(obj, argumentList);
       return (r instanceof Object) ? r : obj;
     }
@@ -4835,72 +4842,72 @@ function dbg(text) {
       // cppInvokerFunc: JS Function object to the C++-side function that interops into C++ code.
       // cppTargetFunc: Function pointer (an integer to FUNCTION_TABLE) to the target C++ function the cppInvokerFunc will end up calling.
       var argCount = argTypes.length;
-
+  
       if (argCount < 2) {
         throwBindingError("argTypes array size mismatch! Must at least get return value and 'this' types!");
       }
-
+  
       assert(!isAsync, 'Async bindings are only supported with JSPI.');
-
+  
       var isClassMethodFunc = (argTypes[1] !== null && classType !== null);
-
+  
       // Free functions with signature "void function()" do not need an invoker that marshalls between wire types.
   // TODO: This omits argument count check - enable only at -O3 or similar.
   //    if (ENABLE_UNSAFE_OPTS && argCount == 2 && argTypes[0].name == "void" && !isClassMethodFunc) {
   //       return FUNCTION_TABLE[fn];
   //    }
-
+  
       // Determine if we need to use a dynamic stack to store the destructors for the function parameters.
       // TODO: Remove this completely once all function invokers are being dynamically generated.
       var needsDestructorStack = false;
-
+  
       for (var i = 1; i < argTypes.length; ++i) { // Skip return value at index 0 - it's not deleted here.
         if (argTypes[i] !== null && argTypes[i].destructorFunction === undefined) { // The type does not define a destructor function - must use dynamic stack
           needsDestructorStack = true;
           break;
         }
       }
-
+  
       var returns = (argTypes[0].name !== "void");
-
+  
       var argsList = "";
       var argsListWired = "";
       for (var i = 0; i < argCount - 2; ++i) {
         argsList += (i!==0?", ":"")+"arg"+i;
         argsListWired += (i!==0?", ":"")+"arg"+i+"Wired";
       }
-
+  
       var invokerFnBody =
           "return function "+makeLegalFunctionName(humanName)+"("+argsList+") {\n" +
           "if (arguments.length !== "+(argCount - 2)+") {\n" +
               "throwBindingError('function "+humanName+" called with ' + arguments.length + ' arguments, expected "+(argCount - 2)+" args!');\n" +
           "}\n";
-
+  
       if (needsDestructorStack) {
         invokerFnBody += "var destructors = [];\n";
       }
-
+  
       var dtorStack = needsDestructorStack ? "destructors" : "null";
       var args1 = ["throwBindingError", "invoker", "fn", "runDestructors", "retType", "classParam"];
       var args2 = [throwBindingError, cppInvokerFunc, cppTargetFunc, runDestructors, argTypes[0], argTypes[1]];
-
+  
       if (isClassMethodFunc) {
         invokerFnBody += "var thisWired = classParam.toWireType("+dtorStack+", this);\n";
       }
-
+  
       for (var i = 0; i < argCount - 2; ++i) {
         invokerFnBody += "var arg"+i+"Wired = argType"+i+".toWireType("+dtorStack+", arg"+i+"); // "+argTypes[i+2].name+"\n";
         args1.push("argType"+i);
         args2.push(argTypes[i+2]);
       }
-
+  
       if (isClassMethodFunc) {
         argsListWired = "thisWired" + (argsListWired.length > 0 ? ", " : "") + argsListWired;
       }
-
+  
       invokerFnBody +=
           (returns || isAsync ? "var rv = ":"") + "invoker(fn"+(argsListWired.length>0?", ":"")+argsListWired+");\n";
-
+  
       if (needsDestructorStack) {
         invokerFnBody += "runDestructors(destructors);\n";
       } else {
@@ -4913,17 +4920,17 @@ function dbg(text) {
           }
         }
       }
-
+  
       if (returns) {
         invokerFnBody += "var ret = retType.fromWireType(rv);\n" +
                          "return ret;\n";
       } else {
       }
-
+  
       invokerFnBody += "}\n";
-
+  
       args1.push(invokerFnBody);
-
+  
       return newFunc(Function, args1).apply(null, args2);
     }
   function __embind_register_class_constructor(
@@ -4939,11 +4946,11 @@ function dbg(text) {
       invoker = embind__requireFunction(invokerSignature, invoker);
       var args = [rawConstructor];
       var destructors = [];
-
+  
       whenDependentTypesAreResolved([], [rawClassType], function(classType) {
         classType = classType[0];
         var humanName = 'constructor ' + classType.name;
-
+  
         if (undefined === classType.registeredClass.constructor_body) {
           classType.registeredClass.constructor_body = [];
         }
@@ -4953,7 +4960,7 @@ function dbg(text) {
         classType.registeredClass.constructor_body[argCount - 1] = () => {
           throwUnboundTypeError('Cannot construct ' + classType.name + ' due to unbound types', rawArgTypes);
         };
-
+  
         whenDependentTypesAreResolved([], rawArgTypes, function(argTypes) {
           // Insert empty slot for context type (argTypes[1]).
           argTypes.splice(1, 0, null);
@@ -4964,11 +4971,11 @@ function dbg(text) {
       });
     }
 
-
-
-
-
-
+  
+  
+  
+  
+  
   function __embind_register_class_function(rawClassType,
                                               methodName,
                                               argCount,
@@ -4981,23 +4988,23 @@ function dbg(text) {
       var rawArgTypes = heap32VectorToArray(argCount, rawArgTypesAddr);
       methodName = readLatin1String(methodName);
       rawInvoker = embind__requireFunction(invokerSignature, rawInvoker);
-
+  
       whenDependentTypesAreResolved([], [rawClassType], function(classType) {
         classType = classType[0];
         var humanName = classType.name + '.' + methodName;
-
+  
         if (methodName.startsWith("@@")) {
           methodName = Symbol[methodName.substring(2)];
         }
-
+  
         if (isPureVirtual) {
           classType.registeredClass.pureVirtualFunctions.push(methodName);
         }
-
+  
         function unboundTypesHandler() {
           throwUnboundTypeError('Cannot call ' + humanName + ' due to unbound types', rawArgTypes);
         }
-
+  
         var proto = classType.registeredClass.instancePrototype;
         var method = proto[methodName];
         if (undefined === method || (undefined === method.overloadTable && method.className !== classType.name && method.argCount === argCount - 2)) {
@@ -5012,10 +5019,10 @@ function dbg(text) {
           ensureOverloadTable(proto, methodName, humanName);
           proto[methodName].overloadTable[argCount - 2] = unboundTypesHandler;
         }
-
+  
         whenDependentTypesAreResolved([], rawArgTypes, function(argTypes) {
           var memberFunction = craftInvokerFunction(humanName, argTypes, classType, rawInvoker, context, isAsync);
-
+  
           // Replace the initial unbound-handler-stub function with the appropriate member function, now that all types
           // are resolved. If multiple overloads are registered for this function, the function goes into an overload table.
           if (undefined === proto[methodName].overloadTable) {
@@ -5025,7 +5032,7 @@ function dbg(text) {
           } else {
             proto[methodName].overloadTable[argCount - 2] = memberFunction;
           }
-
+  
           return [];
         });
         return [];
@@ -5060,9 +5067,9 @@ function dbg(text) {
         emval_handles.free(handle);
       }
     }
-
-
-
+  
+  
+  
   function count_emval_handles() {
       var count = 0;
       for (var i = emval_handles.reserved; i < emval_handles.allocated.length; ++i) {
@@ -5072,7 +5079,7 @@ function dbg(text) {
       }
       return count;
     }
-
+  
   function init_emval() {
       // reserve some special values. These never get de-allocated.
       // The HandleAllocator takes care of reserving zero.
@@ -5101,9 +5108,9 @@ function dbg(text) {
           }
         }
       }};
-
-
-
+  
+  
+  
   function __embind_register_emval(rawType, name) {
       name = readLatin1String(name);
       registerType(rawType, {
@@ -5119,7 +5126,7 @@ function dbg(text) {
         'argPackAdvance': 8,
         'readValueFromPointer': simpleReadValueFromPointer,
         destructorFunction: null, // This type does not need a destructor
-
+  
         // TODO: do we need a deleteObject here?  write a test where
         // emval is passed into JS via an interface
       });
@@ -5136,7 +5143,7 @@ function dbg(text) {
           return '' + v;
       }
     }
-
+  
   function floatReadValueFromPointer(name, shift) {
       switch (shift) {
           case 2: return function(pointer) {
@@ -5149,9 +5156,9 @@ function dbg(text) {
               throw new TypeError("Unknown float type: " + name);
       }
     }
-
-
-
+  
+  
+  
   function __embind_register_float(rawType, name, size) {
       var shift = getShiftFromSize(size);
       name = readLatin1String(name);
@@ -5174,8 +5181,8 @@ function dbg(text) {
       });
     }
 
-
-
+  
+  
   function integerReadValueFromPointer(name, shift, signed) {
       // integers are quite common, so generate very specialized functions
       switch (shift) {
@@ -5192,8 +5199,8 @@ function dbg(text) {
               throw new TypeError("Unknown integer type: " + name);
       }
     }
-
-
+  
+  
   function __embind_register_integer(primitiveType, name, size, minRange, maxRange) {
       name = readLatin1String(name);
       // LLVM doesn't have signed and unsigned 32-bit types, so u32 literals come
@@ -5201,16 +5208,16 @@ function dbg(text) {
       if (maxRange === -1) {
           maxRange = 4294967295;
       }
-
+  
       var shift = getShiftFromSize(size);
-
+  
       var fromWireType = (value) => value;
-
+  
       if (minRange === 0) {
           var bitshift = 32 - 8*size;
           fromWireType = (value) => (value << bitshift) >>> bitshift;
       }
-
+  
       var isUnsignedType = (name.includes('unsigned'));
       var checkAssertions = (value, toTypeName) => {
         if (typeof value != "number" && typeof value != "boolean") {
@@ -5244,7 +5251,7 @@ function dbg(text) {
       });
     }
 
-
+  
   function __embind_register_memory_view(rawType, dataTypeIndex, name) {
       var typeMapping = [
         Int8Array,
@@ -5256,9 +5263,9 @@ function dbg(text) {
         Float32Array,
         Float64Array,
       ];
-
+  
       var TA = typeMapping[dataTypeIndex];
-
+  
       function decodeMemoryView(handle) {
         handle = handle >> 2;
         var heap = HEAPU32;
@@ -5266,7 +5273,7 @@ function dbg(text) {
         var data = heap[handle + 1]; // byte offset into emscripten heap
         return new TA(heap.buffer, data, size);
       }
-
+  
       name = readLatin1String(name);
       registerType(rawType, {
         name: name,
@@ -5278,28 +5285,28 @@ function dbg(text) {
       });
     }
 
-
-
-
-
+  
+  
+  
+  
   function stringToUTF8(str, outPtr, maxBytesToWrite) {
       assert(typeof maxBytesToWrite == 'number', 'stringToUTF8(str, outPtr, maxBytesToWrite) is missing the third parameter that specifies the length of the output buffer!');
       return stringToUTF8Array(str, HEAPU8,outPtr, maxBytesToWrite);
     }
-
-
+  
+  
   function __embind_register_std_string(rawType, name) {
       name = readLatin1String(name);
       var stdStringIsUTF8
       //process only std::string bindings with UTF8 support, in contrast to e.g. std::basic_string<unsigned char>
       = (name === "std::string");
-
+  
       registerType(rawType, {
         name: name,
         'fromWireType': function(value) {
           var length = HEAPU32[((value)>>2)];
           var payload = value + 4;
-
+  
           var str;
           if (stdStringIsUTF8) {
             var decodeStartPtr = payload;
@@ -5325,19 +5332,19 @@ function dbg(text) {
             }
             str = a.join('');
           }
-
+  
           _free(value);
-
+  
           return str;
         },
         'toWireType': function(destructors, value) {
           if (value instanceof ArrayBuffer) {
             value = new Uint8Array(value);
           }
-
+  
           var length;
           var valueIsOfTypeString = (typeof value == 'string');
-
+  
           if (!(valueIsOfTypeString || value instanceof Uint8Array || value instanceof Uint8ClampedArray || value instanceof Int8Array)) {
             throwBindingError('Cannot pass non-string to std::string');
           }
@@ -5346,7 +5353,7 @@ function dbg(text) {
           } else {
             length = value.length;
           }
-
+  
           // assumes 4-byte alignment
           var base = _malloc(4 + length + 1);
           var ptr = base + 4;
@@ -5369,7 +5376,7 @@ function dbg(text) {
               }
             }
           }
-
+  
           if (destructors !== null) {
             destructors.push(_free, base);
           }
@@ -5381,9 +5388,9 @@ function dbg(text) {
       });
     }
 
-
-
-
+  
+  
+  
   var UTF16Decoder = typeof TextDecoder != 'undefined' ? new TextDecoder('utf-16le') : undefined;;
   function UTF16ToString(ptr, maxBytesToRead) {
       assert(ptr % 2 == 0, 'Pointer passed to UTF16ToString must be aligned to two bytes!');
@@ -5398,13 +5405,13 @@ function dbg(text) {
       // will always evaluate to true. This saves on code size.
       while (!(idx >= maxIdx) && HEAPU16[idx]) ++idx;
       endPtr = idx << 1;
-
+  
       if (endPtr - ptr > 32 && UTF16Decoder)
         return UTF16Decoder.decode(HEAPU8.subarray(ptr, endPtr));
-
+  
       // Fallback: decode without UTF16Decoder
       var str = '';
-
+  
       // If maxBytesToRead is not passed explicitly, it will be undefined, and the
       // for-loop's condition will always evaluate to true. The loop is then
       // terminated on the first null char.
@@ -5415,10 +5422,10 @@ function dbg(text) {
         // pass the UTF16 string right through.
         str += String.fromCharCode(codeUnit);
       }
-
+  
       return str;
     }
-
+  
   function stringToUTF16(str, outPtr, maxBytesToWrite) {
       assert(outPtr % 2 == 0, 'Pointer passed to stringToUTF16 must be aligned to two bytes!');
       assert(typeof maxBytesToWrite == 'number', 'stringToUTF16(str, outPtr, maxBytesToWrite) is missing the third parameter that specifies the length of the output buffer!');
@@ -5440,15 +5447,15 @@ function dbg(text) {
       HEAP16[((outPtr)>>1)] = 0;
       return outPtr - startPtr;
     }
-
+  
   function lengthBytesUTF16(str) {
       return str.length*2;
     }
-
+  
   function UTF32ToString(ptr, maxBytesToRead) {
       assert(ptr % 4 == 0, 'Pointer passed to UTF32ToString must be aligned to four bytes!');
       var i = 0;
-
+  
       var str = '';
       // If maxBytesToRead is not passed explicitly, it will be undefined, and this
       // will always evaluate to true. This saves on code size.
@@ -5467,7 +5474,7 @@ function dbg(text) {
       }
       return str;
     }
-
+  
   function stringToUTF32(str, outPtr, maxBytesToWrite) {
       assert(outPtr % 4 == 0, 'Pointer passed to stringToUTF32 must be aligned to four bytes!');
       assert(typeof maxBytesToWrite == 'number', 'stringToUTF32(str, outPtr, maxBytesToWrite) is missing the third parameter that specifies the length of the output buffer!');
@@ -5494,7 +5501,7 @@ function dbg(text) {
       HEAP32[((outPtr)>>2)] = 0;
       return outPtr - startPtr;
     }
-
+  
   function lengthBytesUTF32(str) {
       var len = 0;
       for (var i = 0; i < str.length; ++i) {
@@ -5504,7 +5511,7 @@ function dbg(text) {
         if (codeUnit >= 0xD800 && codeUnit <= 0xDFFF) ++i; // possibly a lead surrogate, so skip over the tail surrogate.
         len += 4;
       }
-
+  
       return len;
     }
   function __embind_register_std_wstring(rawType, charSize, name) {
@@ -5530,7 +5537,7 @@ function dbg(text) {
           var length = HEAPU32[value >> 2];
           var HEAP = getHeap();
           var str;
-
+  
           var decodeStartPtr = value + 4;
           // Looping here to support possible embedded '0' bytes
           for (var i = 0; i <= length; ++i) {
@@ -5547,23 +5554,23 @@ function dbg(text) {
               decodeStartPtr = currentBytePtr + charSize;
             }
           }
-
+  
           _free(value);
-
+  
           return str;
         },
         'toWireType': function(destructors, value) {
           if (!(typeof value == 'string')) {
             throwBindingError('Cannot pass non-string to C++ string type ' + name);
           }
-
+  
           // assumes 4-byte alignment
           var length = lengthBytesUTF(value);
           var ptr = _malloc(4 + length + charSize);
           HEAPU32[ptr >> 2] = length >> shift;
-
+  
           encodeString(value, ptr + 4, length + charSize);
-
+  
           if (destructors !== null) {
             destructors.push(_free, ptr);
           }
@@ -5575,7 +5582,7 @@ function dbg(text) {
       });
     }
 
-
+  
   function __embind_register_void(rawType, name) {
       name = readLatin1String(name);
       registerType(rawType, {
@@ -5618,19 +5625,19 @@ function dbg(text) {
       HEAP32[(((tmPtr)+(28))>>2)] = yday;
     }
 
-
+  
   function isLeapYear(year) {
         return year%4 === 0 && (year%100 !== 0 || year%400 === 0);
     }
-
+  
   var MONTH_DAYS_LEAP_CUMULATIVE = [0,31,60,91,121,152,182,213,244,274,305,335];
-
+  
   var MONTH_DAYS_REGULAR_CUMULATIVE = [0,31,59,90,120,151,181,212,243,273,304,334];
   function ydayFromDate(date) {
       var leap = isLeapYear(date.getFullYear());
       var monthDaysCumulative = (leap ? MONTH_DAYS_LEAP_CUMULATIVE : MONTH_DAYS_REGULAR_CUMULATIVE);
       var yday = monthDaysCumulative[date.getMonth()] + date.getDate() - 1; // -1 since it's days since Jan 1
-
+  
       return yday;
     }
   function __localtime_js(time, tmPtr) {
@@ -5642,11 +5649,11 @@ function dbg(text) {
       HEAP32[(((tmPtr)+(16))>>2)] = date.getMonth();
       HEAP32[(((tmPtr)+(20))>>2)] = date.getFullYear()-1900;
       HEAP32[(((tmPtr)+(24))>>2)] = date.getDay();
-
+  
       var yday = ydayFromDate(date)|0;
       HEAP32[(((tmPtr)+(28))>>2)] = yday;
       HEAP32[(((tmPtr)+(36))>>2)] = -(date.getTimezoneOffset() * 60);
-
+  
       // Attention: DST is in December in South, and some regions don't have DST at all.
       var start = new Date(date.getFullYear(), 0, 1);
       var summerOffset = new Date(date.getFullYear(), 6, 1).getTimezoneOffset();
@@ -5663,7 +5670,7 @@ function dbg(text) {
                           HEAP32[(((tmPtr)+(4))>>2)],
                           HEAP32[((tmPtr)>>2)],
                           0);
-
+  
       // There's an ambiguous hour when the time goes back; the tm_isdst field is
       // used to disambiguate it.  Date() basically guesses, so we fix it up if it
       // guessed wrong, or fill in tm_isdst with the guess if it's -1.
@@ -5682,7 +5689,7 @@ function dbg(text) {
         // Don't try setMinutes(date.getMinutes() + ...) -- it's messed up.
         date.setTime(date.getTime() + (trueOffset - guessedOffset)*60000);
       }
-
+  
       HEAP32[(((tmPtr)+(24))>>2)] = date.getDay();
       var yday = ydayFromDate(date)|0;
       HEAP32[(((tmPtr)+(28))>>2)] = yday;
@@ -5693,11 +5700,11 @@ function dbg(text) {
       HEAP32[(((tmPtr)+(12))>>2)] = date.getDate();
       HEAP32[(((tmPtr)+(16))>>2)] = date.getMonth();
       HEAP32[(((tmPtr)+(20))>>2)] = date.getYear();
-
+  
       return (date.getTime() / 1000)|0;
     }
 
-
+  
   function stringToNewUTF8(str) {
       var size = lengthBytesUTF8(str) + 1;
       var ret = _malloc(size);
@@ -5711,21 +5718,21 @@ function dbg(text) {
       var summer = new Date(currentYear, 6, 1);
       var winterOffset = winter.getTimezoneOffset();
       var summerOffset = summer.getTimezoneOffset();
-
+  
       // Local standard timezone offset. Local standard time is not adjusted for daylight savings.
       // This code uses the fact that getTimezoneOffset returns a greater value during Standard Time versus Daylight Saving Time (DST).
       // Thus it determines the expected output during Standard Time, and it compares whether the output of the given date the same (Standard) or less (DST).
       var stdTimezoneOffset = Math.max(winterOffset, summerOffset);
-
+  
       // timezone is specified as seconds west of UTC ("The external variable
       // `timezone` shall be set to the difference, in seconds, between
       // Coordinated Universal Time (UTC) and local standard time."), the same
       // as returned by stdTimezoneOffset.
       // See http://pubs.opengroup.org/onlinepubs/009695399/functions/tzset.html
       HEAPU32[((timezone)>>2)] = stdTimezoneOffset * 60;
-
+  
       HEAP32[((daylight)>>2)] = Number(winterOffset != summerOffset);
-
+  
       function extractZone(date) {
         var match = date.toTimeString().match(/\(([A-Za-z ]+)\)$/);
         return match ? match[1] : "GMT";
@@ -5765,20 +5772,82 @@ function dbg(text) {
     }
 
   function getHeapMax() {
-      return HEAPU8.length;
+      // Stay one Wasm page short of 4GB: while e.g. Chrome is able to allocate
+      // full 4GB Wasm memories, the size will wrap back to 0 bytes in Wasm side
+      // for any code that deals with heap sizes, which would require special
+      // casing all heap size related code to treat 0 specially.
+      return 2147483648;
     }
-
-  function abortOnCannotGrowMemory(requestedSize) {
-      abort('Cannot enlarge memory arrays to size ' + requestedSize + ' bytes (OOM). Either (1) compile with -sINITIAL_MEMORY=X with X higher than the current value ' + HEAP8.length + ', (2) compile with -sALLOW_MEMORY_GROWTH which allows increasing the size at runtime, or (3) if you want malloc to return NULL (0) instead of this abort, compile with -sABORTING_MALLOC=0');
+  
+  function emscripten_realloc_buffer(size) {
+      var b = wasmMemory.buffer;
+      try {
+        // round size grow request up to wasm page size (fixed 64KB per spec)
+        wasmMemory.grow((size - b.byteLength + 65535) >>> 16); // .grow() takes a delta compared to the previous size
+        updateMemoryViews();
+        return 1 /*success*/;
+      } catch(e) {
+        err('emscripten_realloc_buffer: Attempted to grow heap from ' + b.byteLength  + ' bytes to ' + size + ' bytes, but got error: ' + e);
+      }
+      // implicit 0 return to save code size (caller will cast "undefined" into 0
+      // anyhow)
     }
   function _emscripten_resize_heap(requestedSize) {
       var oldSize = HEAPU8.length;
       requestedSize = requestedSize >>> 0;
-      abortOnCannotGrowMemory(requestedSize);
+      // With multithreaded builds, races can happen (another thread might increase the size
+      // in between), so return a failure, and let the caller retry.
+      assert(requestedSize > oldSize);
+  
+      // Memory resize rules:
+      // 1.  Always increase heap size to at least the requested size, rounded up
+      //     to next page multiple.
+      // 2a. If MEMORY_GROWTH_LINEAR_STEP == -1, excessively resize the heap
+      //     geometrically: increase the heap size according to
+      //     MEMORY_GROWTH_GEOMETRIC_STEP factor (default +20%), At most
+      //     overreserve by MEMORY_GROWTH_GEOMETRIC_CAP bytes (default 96MB).
+      // 2b. If MEMORY_GROWTH_LINEAR_STEP != -1, excessively resize the heap
+      //     linearly: increase the heap size by at least
+      //     MEMORY_GROWTH_LINEAR_STEP bytes.
+      // 3.  Max size for the heap is capped at 2048MB-WASM_PAGE_SIZE, or by
+      //     MAXIMUM_MEMORY, or by ASAN limit, depending on which is smallest
+      // 4.  If we were unable to allocate as much memory, it may be due to
+      //     over-eager decision to excessively reserve due to (3) above.
+      //     Hence if an allocation fails, cut down on the amount of excess
+      //     growth, in an attempt to succeed to perform a smaller allocation.
+  
+      // A limit is set for how much we can grow. We should not exceed that
+      // (the wasm binary specifies it, so if we tried, we'd fail anyhow).
+      var maxHeapSize = getHeapMax();
+      if (requestedSize > maxHeapSize) {
+        err('Cannot enlarge memory, asked to go up to ' + requestedSize + ' bytes, but the limit is ' + maxHeapSize + ' bytes!');
+        return false;
+      }
+  
+      let alignUp = (x, multiple) => x + (multiple - x % multiple) % multiple;
+  
+      // Loop through potential heap size increases. If we attempt a too eager
+      // reservation that fails, cut down on the attempted size and reserve a
+      // smaller bump instead. (max 3 times, chosen somewhat arbitrarily)
+      for (var cutDown = 1; cutDown <= 4; cutDown *= 2) {
+        var overGrownHeapSize = oldSize * (1 + 0.2 / cutDown); // ensure geometric growth
+        // but limit overreserving (default to capping at +96MB overgrowth at most)
+        overGrownHeapSize = Math.min(overGrownHeapSize, requestedSize + 100663296 );
+  
+        var newSize = Math.min(maxHeapSize, alignUp(Math.max(requestedSize, overGrownHeapSize), 65536));
+  
+        var replacement = emscripten_realloc_buffer(newSize);
+        if (replacement) {
+  
+          return true;
+        }
+      }
+      err('Failed to grow the heap from ' + oldSize + ' bytes to ' + newSize + ' bytes, not enough memory!');
+      return false;
     }
 
   var ENV = {};
-
+  
   function getExecutableName() {
       return thisProgram || './this.program';
     }
@@ -5812,7 +5881,7 @@ function dbg(text) {
       }
       return getEnvStrings.strings;
     }
-
+  
   function stringToAscii(str, buffer) {
       for (var i = 0; i < str.length; ++i) {
         assert(str.charCodeAt(i) === (str.charCodeAt(i) & 0xff));
@@ -5821,7 +5890,7 @@ function dbg(text) {
       // Null-terminate the string
       HEAP8[((buffer)>>0)] = 0;
     }
-
+  
   function _environ_get(__environ, environ_buf) {
       var bufSize = 0;
       getEnvStrings().forEach(function(string, i) {
@@ -5833,7 +5902,7 @@ function dbg(text) {
       return 0;
     }
 
-
+  
   function _environ_sizes_get(penviron_count, penviron_buf_size) {
       var strings = getEnvStrings();
       HEAPU32[((penviron_count)>>2)] = strings.length;
@@ -5845,7 +5914,7 @@ function dbg(text) {
       return 0;
     }
 
-
+  
   function _proc_exit(code) {
       EXITSTATUS = code;
       if (!keepRuntimeAlive()) {
@@ -5858,22 +5927,22 @@ function dbg(text) {
   /** @param {boolean|number=} implicit */
   function exitJS(status, implicit) {
       EXITSTATUS = status;
-
+  
       checkUnflushedContent();
-
+  
       // if exit() was called explicitly, warn the user if the runtime isn't actually being shut down
       if (keepRuntimeAlive() && !implicit) {
         var msg = 'program exited (with status: ' + status + '), but keepRuntimeAlive() is set (counter=' + runtimeKeepaliveCounter + ') due to an async operation, so halting execution but not exiting the runtime or preventing further async execution (you can use emscripten_force_exit, if you want to force a true shutdown)';
         err(msg);
       }
-
+  
       _proc_exit(status);
     }
   var _exit = exitJS;
 
   function _fd_close(fd) {
   try {
-
+  
       var stream = SYSCALLS.getStreamFromFD(fd);
       FS.close(stream);
       return 0;
@@ -5900,10 +5969,10 @@ function dbg(text) {
       }
       return ret;
     }
-
+  
   function _fd_read(fd, iov, iovcnt, pnum) {
   try {
-
+  
       var stream = SYSCALLS.getStreamFromFD(fd);
       var num = doReadv(stream, iov, iovcnt);
       HEAPU32[((pnum)>>2)] = num;
@@ -5919,13 +5988,13 @@ function dbg(text) {
       assert(hi === (hi|0));                    // hi should be a i32
       return ((hi + 0x200000) >>> 0 < 0x400001 - !!lo) ? (lo >>> 0) + hi * 4294967296 : NaN;
     }
-
-
-
-
+  
+  
+  
+  
   function _fd_seek(fd, offset_low, offset_high, whence, newOffset) {
   try {
-
+  
       var offset = convertI32PairToI53Checked(offset_low, offset_high); if (isNaN(offset)) return 61;
       var stream = SYSCALLS.getStreamFromFD(fd);
       FS.llseek(stream, offset, whence);
@@ -5954,10 +6023,10 @@ function dbg(text) {
       }
       return ret;
     }
-
+  
   function _fd_write(fd, iov, iovcnt, pnum) {
   try {
-
+  
       var stream = SYSCALLS.getStreamFromFD(fd);
       var num = doWritev(stream, iov, iovcnt);
       HEAPU32[((pnum)>>2)] = num;
@@ -5968,7 +6037,7 @@ function dbg(text) {
   }
   }
 
-
+  
   function arraySum(array, index) {
       var sum = 0;
       for (var i = 0; i <= index; sum += array[i++]) {
@@ -5976,10 +6045,10 @@ function dbg(text) {
       }
       return sum;
     }
-
-
+  
+  
   var MONTH_DAYS_LEAP = [31,29,31,30,31,30,31,31,30,31,30,31];
-
+  
   var MONTH_DAYS_REGULAR = [31,28,31,30,31,30,31,31,30,31,30,31];
   function addDays(date, days) {
       var newDate = new Date(date.getTime());
@@ -5987,7 +6056,7 @@ function dbg(text) {
         var leap = isLeapYear(newDate.getFullYear());
         var currentMonth = newDate.getMonth();
         var daysInCurrentMonth = (leap ? MONTH_DAYS_LEAP : MONTH_DAYS_REGULAR)[currentMonth];
-
+  
         if (days > daysInCurrentMonth-newDate.getDate()) {
           // we spill over to next month
           days -= (daysInCurrentMonth-newDate.getDate()+1);
@@ -6004,24 +6073,24 @@ function dbg(text) {
           return newDate;
         }
       }
-
+  
       return newDate;
     }
-
-
-
-
+  
+  
+  
+  
   function writeArrayToMemory(array, buffer) {
       assert(array.length >= 0, 'writeArrayToMemory array must have a length (should be an array or typed array)')
       HEAP8.set(array, buffer);
     }
-
+  
   function _strftime(s, maxsize, format, tm) {
       // size_t strftime(char *restrict s, size_t maxsize, const char *restrict format, const struct tm *restrict timeptr);
       // http://pubs.opengroup.org/onlinepubs/009695399/functions/strftime.html
-
+  
       var tm_zone = HEAP32[(((tm)+(40))>>2)];
-
+  
       var date = {
         tm_sec: HEAP32[((tm)>>2)],
         tm_min: HEAP32[(((tm)+(4))>>2)],
@@ -6035,9 +6104,9 @@ function dbg(text) {
         tm_gmtoff: HEAP32[(((tm)+(36))>>2)],
         tm_zone: tm_zone ? UTF8ToString(tm_zone) : ''
       };
-
+  
       var pattern = UTF8ToString(format);
-
+  
       // expand format
       var EXPANSION_RULES_1 = {
         '%c': '%a %b %d %H:%M:%S %Y',     // Replaced by the locale's appropriate date and time representation - e.g., Mon Aug  3 14:02:01 2013
@@ -6073,10 +6142,10 @@ function dbg(text) {
       for (var rule in EXPANSION_RULES_1) {
         pattern = pattern.replace(new RegExp(rule, 'g'), EXPANSION_RULES_1[rule]);
       }
-
+  
       var WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
       var MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-
+  
       function leadingSomething(value, digits, character) {
         var str = typeof value == 'number' ? value.toString() : (value || '');
         while (str.length < digits) {
@@ -6084,16 +6153,16 @@ function dbg(text) {
         }
         return str;
       }
-
+  
       function leadingNulls(value, digits) {
         return leadingSomething(value, digits, '0');
       }
-
+  
       function compareByDay(date1, date2) {
         function sgn(value) {
           return value < 0 ? -1 : (value > 0 ? 1 : 0);
         }
-
+  
         var compare;
         if ((compare = sgn(date1.getFullYear()-date2.getFullYear())) === 0) {
           if ((compare = sgn(date1.getMonth()-date2.getMonth())) === 0) {
@@ -6102,7 +6171,7 @@ function dbg(text) {
         }
         return compare;
       }
-
+  
       function getFirstWeekStartDate(janFourth) {
           switch (janFourth.getDay()) {
             case 0: // Sunday
@@ -6121,16 +6190,16 @@ function dbg(text) {
               return new Date(janFourth.getFullYear()-1, 11, 30);
           }
       }
-
+  
       function getWeekBasedYear(date) {
           var thisDate = addDays(new Date(date.tm_year+1900, 0, 1), date.tm_yday);
-
+  
           var janFourthThisYear = new Date(thisDate.getFullYear(), 0, 4);
           var janFourthNextYear = new Date(thisDate.getFullYear()+1, 0, 4);
-
+  
           var firstWeekStartThisYear = getFirstWeekStartDate(janFourthThisYear);
           var firstWeekStartNextYear = getFirstWeekStartDate(janFourthNextYear);
-
+  
           if (compareByDay(firstWeekStartThisYear, thisDate) <= 0) {
             // this date is after the start of the first week of this year
             if (compareByDay(firstWeekStartNextYear, thisDate) <= 0) {
@@ -6140,7 +6209,7 @@ function dbg(text) {
           }
           return thisDate.getFullYear()-1;
       }
-
+  
       var EXPANSION_RULES_2 = {
         '%a': function(date) {
           return WEEKDAYS[date.tm_wday].substring(0,3);
@@ -6174,7 +6243,7 @@ function dbg(text) {
           // %G is replaced by 1998 and %V is replaced by 53. If December 29th, 30th,
           // or 31st is a Monday, it and any following days are part of week 1 of the following year.
           // Thus, for Tuesday 30th December 1997, %G is replaced by 1998 and %V is replaced by 01.
-
+  
           return getWeekBasedYear(date).toString().substring(2);
         },
         '%G': function(date) {
@@ -6282,7 +6351,7 @@ function dbg(text) {
           return '%';
         }
       };
-
+  
       // Replace %% with a pair of NULLs (which cannot occur in a C string), then
       // re-inject them after processing.
       pattern = pattern.replace(/%%/g, '\0\0')
@@ -6292,12 +6361,12 @@ function dbg(text) {
         }
       }
       pattern = pattern.replace(/\0\0/g, '%')
-
+  
       var bytes = intArrayFromString(pattern, false);
       if (bytes.length > maxsize) {
         return 0;
       }
-
+  
       writeArrayToMemory(bytes, s);
       return bytes.length-1;
     }
@@ -6306,19 +6375,19 @@ function dbg(text) {
       return _strftime(s, maxsize, format, tm); // no locale support yet
     }
 
-
+  
   function _system(command) {
       if (ENVIRONMENT_IS_NODE) {
         if (!command) return 1; // shell is available
-
+  
         var cmdstr = UTF8ToString(command);
         if (!cmdstr.length) return 0; // this is what glibc seems to do (shell works test?)
-
+  
         var cp = require('child_process');
         var ret = cp.spawnSync(cmdstr, [], {shell:true, stdio:'inherit'});
-
+  
         var _W_EXITCODE = (ret, sig) => ((ret) << 8 | (sig));
-
+  
         // this really only can happen if process is killed by signal
         if (ret.status === null) {
           // sadly node doesn't expose such function
@@ -6337,7 +6406,7 @@ function dbg(text) {
           }
           return _W_EXITCODE(0, signalToNumber(ret.signal));
         }
-
+  
         return _W_EXITCODE(ret.status, 0);
       }
       // int system(const char *command);
@@ -6660,7 +6729,6 @@ function invoke_vii(index,a1,a2) {
 // === Auto-generated postamble setup entry stuff ===
 
 var missingLibrarySymbols = [
-  'emscripten_realloc_buffer',
   'inetPton4',
   'inetNtop4',
   'inetPton6',
@@ -6854,7 +6922,7 @@ var unexportedSymbols = [
   'zeroMemory',
   'exitJS',
   'getHeapMax',
-  'abortOnCannotGrowMemory',
+  'emscripten_realloc_buffer',
   'ENV',
   'MONTH_DAYS_REGULAR',
   'MONTH_DAYS_LEAP',

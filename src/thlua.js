@@ -13773,11 +13773,13 @@ end
 
 function PlayGround:update(vName, vData)
     local nInput = (json.decode(vData) ) 
-    return json.encode(self:_update(vName, nInput))
+    local ret = self:_update(vName, nInput)
+    return json.encode(ret)
 end
 
 function PlayGround:_update(vName, vInput)
-    local nCode = SplitCode.new(vInput.content)
+    local nContent = vInput.content
+    local nCode = SplitCode.new(nContent)
     self._splitCode = nCode
     local nParseOkay, nCodeEnv = pcall(CodeEnv.new, nCode, vName)
     if not nParseOkay then
@@ -13792,6 +13794,7 @@ function PlayGround:_update(vName, vInput)
             err=tostring(nExc),
         }
     end
+    local nDiaList = nRuntime:getAllDiagnostic()[vName]
     return {
         content=nCodeEnv:genLuaCode()
     }
