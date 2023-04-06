@@ -1,5 +1,17 @@
 {
+  "name": "PlayGround",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "build": "webpack"
+  },
   "dependencies": {
-    "monaco-editor": "^0.36.1"
+    "css-loader": "^6.7.3",
+    "file-loader": "^6.2.0",
+    "monaco-editor": "^0.36.1",
+    "monaco-editor-webpack-plugin": "^7.0.1",
+    "style-loader": "^3.3.2",
+    "webpack": "^5.78.0",
+    "webpack-cli": "^5.0.1"
   }
 }
