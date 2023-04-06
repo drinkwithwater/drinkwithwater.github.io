@@ -1,6 +1,6 @@
 
 var initDone = false
-initFunction = function(){
+var initFunction = function(){
 	if(initDone) {
 		return;
 	}
@@ -41,12 +41,22 @@ initFunction = function(){
 	});
 
 	let update = function(triggerByEditor) {
+		let position = false
 		if(!triggerByEditor){
 			leftEditor.setValue(leftContent);
 		} else {
+			position = {
+				l:leftEditor.getPosition().lineNumber + 1,
+				c:leftEditor.getPosition().column,
+			}
 			leftContent = leftEditor.getValue();
 		}
-		let outputRaw = luaState.call("main", leftContent)
+		let inputRaw = JSON.stringify({
+			position:position,
+			content:leftContent
+		})
+		console.log(inputRaw)
+		let outputRaw = luaState.call("main", inputRaw)
 		let outputObj = JSON.parse(outputRaw)
 		if(typeof(outputObj.err) == "string") {
 			monaco.editor.setModelLanguage(rightEditor.getModel(), "plaintext")

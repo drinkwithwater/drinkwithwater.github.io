@@ -13744,6 +13744,13 @@ local DiagnosticRuntime = require "thlua.runtime.DiagnosticRuntime"
 
       
        
+         
+            
+            
+        
+        
+    
+       
         
         
     
@@ -13764,12 +13771,13 @@ function PlayGround:thluaSearch(vPath)
     return false, "can't use require on playground"
 end
 
-function PlayGround:update(...)
-    return json.encode(self:_update(...))
+function PlayGround:update(vName, vData)
+    local nInput = (json.decode(vData) ) 
+    return json.encode(self:_update(vName, nInput))
 end
 
-function PlayGround:_update(vName, vContent)
-    local nCode = SplitCode.new(vContent)
+function PlayGround:_update(vName, vInput)
+    local nCode = SplitCode.new(vInput.content)
     self._splitCode = nCode
     local nParseOkay, nCodeEnv = pcall(CodeEnv.new, nCode, vName)
     if not nParseOkay then
