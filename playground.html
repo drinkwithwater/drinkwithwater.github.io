@@ -7,9 +7,16 @@
 				monaco:null,
 				thlua_syntax:null,
 			};
+			var initFunction = null;
 			var Module = {
 				onRuntimeInitialized:function(){
 					luaState = new Module.CallInstance(THLUA_SCRIPT);
+					initFunction();
+				}
+			}
+			document.onreadystatechange=function(){
+				if(document.readyState=="complete") {
+					initFunction();
 				}
 			}
 		</script>

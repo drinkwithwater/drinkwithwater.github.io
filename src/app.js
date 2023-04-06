@@ -1,5 +1,10 @@
 
-document.onreadystatechange=function(){ if(document.readyState=="complete") {
+var initDone = false
+initFunction = function(){
+	if(initDone) {
+		return;
+	}
+	initDone = true;
 	var monaco = webpackModule.monaco
 	var thlua_syntax = webpackModule.thlua_syntax
 	var app = new Vue({
@@ -51,6 +56,5 @@ document.onreadystatechange=function(){ if(document.readyState=="complete") {
 	leftEditor.onDidChangeModelContent(function(e){
 		update(true);
 	});
-
-} }
+}
 
