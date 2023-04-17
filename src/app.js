@@ -20,10 +20,8 @@ var initFunction = function(){
 	monaco.languages.setLanguageConfiguration("thlua", thlua_syntax.conf)
 	monaco.languages.setMonarchTokensProvider('thlua', thlua_syntax.language)
 
-	var leftContent = "";
-	leftContent = ['(@do', '\tprint("Hello in Hint Space")', 'end)', 'print("Hello in Lua Space")'].join('\n')
 	leftEditor = monaco.editor.create(document.getElementById('inputBody'), {
-		value: leftContent,
+		value: "",
 		language: 'thlua',
 		fontSize: "20px",
 		contextmenu:false,
@@ -75,20 +73,18 @@ var initFunction = function(){
 		}
 	});
 
-	let luaCall = function(selectName, triggerByEditor) {
+	let luaCall = function(selectName, triggerByEdit) {
 		let position = false
-		if(!triggerByEditor){
-			leftEditor.setValue(leftContent);
-		} else {
+		if(triggerByEdit){
 			position = {
 				l:leftEditor.getPosition().lineNumber + 1,
 				c:leftEditor.getPosition().column,
 			}
-			leftContent = leftEditor.getValue();
 		}
+		let content = leftEditor.getValue();
 		let inputRaw = JSON.stringify({
 			position:position,
-			content:leftContent
+			content:content
 		})
 		// console.log(inputRaw)
 		let outputRaw = luaState.call(selectName, inputRaw)
@@ -151,16 +147,23 @@ var initFunction = function(){
 		methods: {
 			useExample:function(name){
 				let content = THLUA_EXAMPLES[name]
-				leftContent = content;
 				this.selected = name;
-				luaCall(this.selected, false);
+				leftEditor.setValue(content);
 			}
 		}
 	});
 
-	luaCall(leftHeader.selected, false);
 	leftEditor.onDidChangeModelContent(function(e){
+		console.log("on change model content");
 		luaCall(leftHeader.selected, true);
+		CODE_CACHE.setCache(leftHeader.selected, leftEditor.getValue());
 	});
+	let cache = CODE_CACHE.getCache();
+	if(cache.content == '' || cache.selected == '' || typeof(THLUA_EXAMPLES[cache.selected]) != "string"){
+		cache.selected = leftHeader.selected;
+		cache.content = THLUA_EXAMPLES[leftHeader.selected];
+	}
+	leftHeader.selected = cache.selected;
+	leftEditor.setValue(cache.content);
 }
 
