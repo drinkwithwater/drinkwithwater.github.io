@@ -2437,6 +2437,7 @@ local Enum = require "thlua.Enum"
   
 	  
 	  
+	
 	  
 	  
 	  
@@ -2458,6 +2459,7 @@ local Enum = require "thlua.Enum"
 	  
 	  
 	             
+	  
 	
 	  
  
@@ -2784,8 +2786,8 @@ local exprF = {
 }
 
 local parF = {
-	identUse=function(vPos, vName, vPosEnd)
-		return {tag="Ident", pos=vPos, posEnd=vPosEnd, [1] = vName, kind="use"}
+	identUse=function(vPos, vName, vNotnil, vPosEnd)
+		return {tag="Ident", pos=vPos, posEnd=vPosEnd, [1] = vName, kind="use", notnil=vNotnil}
 	end,
 	identDef=function(vPos, vName, vHintShort, vPosEnd)
 		return {tag="Ident", pos=vPos, posEnd=vPosEnd, [1] = vName, kind="def", hintShort=vHintShort}
@@ -2930,14 +2932,14 @@ local function chainOp (pat, kwOrSymb, op1, ...)
 end
 
 local function suffixedExprByPrimary(primaryExpr)
-	local notnil = lpeg.Cg(vv.NotnilHint*vv.Skip*cc(true) + cc(false), "notnil")
+	local notnil = lpeg.Cg(vv.NotnilHint*cc(true) + cc(false), "notnil")
 	local polyArgs = lpeg.Cg(vv.AtPolyHint + cc(false), "hintPolyArgs")
 	-- . index
 	local index1 = tagC.Index(cc(false) * symb(".") * tagC.String(vv.Name) * notnil)
 	-- [] index
 	local index2 = tagC.Index(cc(false) * symb("[") * vvA.Expr * symbA("]") * notnil)
 	-- invoke
-	local invoke = tagC.Invoke(cc(false) * symb(":") * tagC.String(vv.Name) * polyArgs * vvA.FuncArgs)
+	local invoke = tagC.Invoke(cc(false) * symb(":") * tagC.String(vv.Name) * notnil * polyArgs * vvA.FuncArgs)
 	-- call
 	local call = tagC.Call(cc(false) * vv.FuncArgs)
 	-- atPoly
@@ -3021,7 +3023,7 @@ local G = lpeg.P { "TypeHintLua";
 		return true
 	end);
 
-	NotnilHint = hintC.char("!");
+	NotnilHint = hintC.char("!") * vv.Skip;
 
 	AtCastHint = hintC.wrap(
 		false,
@@ -3080,7 +3082,7 @@ local G = lpeg.P { "TypeHintLua";
 		return tagC.Table(symb("{") * lpeg.Cg(vv.LongHint*(symb(",") + symb(";"))^-1, "hintLong")^-1 * FieldList * symbA("}"))
 	end)();
 
-	IdentUse = Cpos*vv.Name*Cpos/parF.identUse;
+	IdentUse = Cpos*vv.Name*(vv.NotnilHint * cc(true) + cc(false))*Cpos/parF.identUse;
 	IdentDefT = Cpos*vv.Name*(vv.ColonHint + cc(nil))*Cpos/parF.identDef;
 	IdentDefN = Cpos*vv.Name*cc(nil)*Cpos/parF.identDef;
 
@@ -3153,6 +3155,8 @@ local G = lpeg.P { "TypeHintLua";
 				for _, varExpr in ipairs(nVarList) do
 					if varExpr.tag ~= "Ident" and varExpr.tag ~= "Index" then
 						error(env:makeErrNode(pos, "syntax error: only identify or index can be left-hand-side in assign statement"))
+					elseif varExpr.notnil then
+						error(env:makeErrNode(pos, "syntax error: notnil can't be used on left-hand-side in assign statement"))
 					end
 				end
 				return true, {
@@ -5304,10 +5308,6 @@ end
 
 function OperContext:getStack()
 	return self._stack
-end
-
-function OperContext:getInstStack()
-	return self._stack  
 end
 
 return OperContext
@@ -8333,7 +8333,7 @@ function native.make_inext(vManager)
 	return vManager:fixedNativeOpenFunction(function(vContext, vTermTuple)
 		local nFirstTerm = vTermTuple:get(vContext, 1)
 		    
-		local nNotNilValue = vContext:getInstStack():META_GET(vContext:getNode(), nFirstTerm, vContext:RefineTerm(nNumber), true):getType()
+		local nNotNilValue = vContext:getStack():anyNodeMetaGet(vContext:getNode(), nFirstTerm, vContext:RefineTerm(nNumber), true):getType()
 		local nValueTerm = vContext:RefineTerm(vManager:checkedUnion(nNotNilValue, nNil))
 		local nKeyValue  = {
 			[nNumber]=nNotNilValue,
@@ -11071,6 +11071,7 @@ end end
 do local _ENV = _ENV
 packages['thlua.runtime.BaseStack'] = function (...)
 
+local OpenTable = require "thlua.object.OpenTable"
 local DoBuilder = require "thlua.builder.DoBuilder"
 local Branch = require "thlua.runtime.Branch"
 local DotsTail = require "thlua.tuple.DotsTail"
@@ -11140,6 +11141,22 @@ end
 
 function BaseStack:RAISE_ERROR(vContext, vType)
 	error("check error in OpenStack or SealStack")
+end
+
+function BaseStack:anyNodeMetaGet(vNode, vSelfTerm, vKeyTerm, vNotnil)
+	return self:withOnePushContext(vNode, function(vContext)
+		vSelfTerm:foreach(function(vSelfType, vVariableCase)
+			vKeyTerm:foreach(function(vKeyType, vKeyVariableCase)
+				vContext:withCase(vVariableCase & vKeyVariableCase, function()
+					if not vSelfType:meta_get(vContext, vKeyType) then
+						if not OpenTable.is(vSelfType) then
+							vContext:error("index error, key="..tostring(vKeyType))
+						end
+					end
+				end)
+			end)
+		end)
+	end, vNotnil):mergeFirst()
 end
 
 function BaseStack:prepareMetaCall(
@@ -11354,10 +11371,10 @@ function Branch.new(vStack, vVariableCase, vPreBranch, vNode)
 		_stack=vStack,
 		_node=vNode or false,
 		_stop=false,
-		_case=vVariableCase,
 		_nodeToSymbol={},
 		symbolToVariable={},
-		_headCase=vVariableCase,
+		_curCase=vVariableCase,     
+		_headCase=vVariableCase,      
 	}, Branch)
 	if vPreBranch then
 		if vPreBranch:getStack() == vStack then
@@ -11372,47 +11389,44 @@ function Branch.new(vStack, vVariableCase, vPreBranch, vNode)
 	return self
 end
 
-function Branch:immutGet(vContext, vImmutVariable)
-	local nType = self._case[vImmutVariable]
-	if nType then
-		if not nType:isNever() then
-			local nTerm = vImmutVariable:getTerm():filter(vContext, nType)
-			nTerm:initVariable(vImmutVariable)
-			return nTerm
-		else
-			vContext:error("TODO type is never when get symbol"..tostring(vImmutVariable))
-			return vContext:NeverTerm()
-		end
+function Branch:immutGet(vContext, vImmutVariable, vNotnil)
+	local nTerm = vImmutVariable:filterTerm(vContext, self._curCase)
+	if vNotnil then
+		return nTerm:notnilTerm()
 	else
-		return vImmutVariable:getTerm()
+		return nTerm
 	end
 end
 
-function Branch:mutGet(vContext, vLocalSymbol)
+function Branch:mutGet(vContext, vLocalSymbol, vNotnil)
 	local nImmutVariable = self.symbolToVariable[vLocalSymbol]
 	if not nImmutVariable then
 		    
 		nImmutVariable = vLocalSymbol:makeVariable()
 		self.symbolToVariable[vLocalSymbol] = nImmutVariable
 	end
-	return self:immutGet(vContext, nImmutVariable)
+	return self:immutGet(vContext, nImmutVariable, vNotnil)
 end
 
 function Branch:SYMBOL_GET(vNode, vDefineNode, vAllowAuto)
 	local nSymbolContext = self._stack:newOperContext(vNode)
 	local nSymbol = self:getSymbolByNode(vDefineNode)
 	if LocalSymbol.is(nSymbol) then
-		return self:mutGet(nSymbolContext, nSymbol)
+		return self:mutGet(nSymbolContext, nSymbol, vNode.notnil or false)
 	elseif ImmutVariable.is(nSymbol) then
-		return self:immutGet(nSymbolContext, nSymbol)
+		return self:immutGet(nSymbolContext, nSymbol, vNode.notnil or false)
 	else
+		    
 		local nTerm = nSymbol:getRefineTerm()
 		if nTerm then
-			return self:immutGet(nSymbolContext, nTerm:attachImmutVariable())
+			return self:immutGet(nSymbolContext, nTerm:attachImmutVariable(), vNode.notnil or false)
 		else
 			if not vAllowAuto then
 				error(nSymbolContext:newException("auto term can't be used when it's undeduced:"..tostring(nSymbol)))
 			else
+				if vNode.notnil then
+					error(nSymbolContext:newException("auto term can't take notnil cast "..tostring(nSymbol)))
+				end
 				return nSymbol
 			end
 		end
@@ -11446,7 +11460,7 @@ end
 function Branch:mergeOneBranch(vContext, vOneBranch, vOtherCase)
 	if vOneBranch:getStop() then
 		if vOtherCase then
-			self._case = self._case & vOtherCase
+			self._curCase = self._curCase & vOtherCase
 			self._headCase = self._headCase & vOtherCase
 		end
 	else
@@ -11454,11 +11468,11 @@ function Branch:mergeOneBranch(vContext, vOneBranch, vOtherCase)
 		for nLocalSymbol, nOneVariable in pairs(vOneBranch.symbolToVariable) do
 			local nBeforeVariable = nSymbolToVariable[nLocalSymbol]
 			if nBeforeVariable then
-				local nOneType = vOneBranch:mutGet(vContext, nLocalSymbol):getType()
+				local nOneType = vOneBranch:mutGet(vContext, nLocalSymbol, false):getType()
 				if not vOtherCase then
 					nSymbolToVariable[nLocalSymbol] = nLocalSymbol:makeVariable(nOneType)
 				else
-					local nOtherType = vOtherCase[nBeforeVariable] or self._case[nBeforeVariable] or nBeforeVariable:getType()
+					local nOtherType = vOtherCase[nBeforeVariable] or self._curCase[nBeforeVariable] or nBeforeVariable:getType()
 					local nMergeType = nOneType | nOtherType
 					nSymbolToVariable[nLocalSymbol] = nLocalSymbol:makeVariable(nMergeType)
 				end
@@ -11485,12 +11499,12 @@ function Branch:mergeTwoBranch(vContext, vTrueBranch, vFalseBranch)
 		if self.symbolToVariable[nLocalSymbol] then
 			local nType
 			if nFalseStop then
-				nType = vTrueBranch:mutGet(vContext, nLocalSymbol):getType()
+				nType = vTrueBranch:mutGet(vContext, nLocalSymbol, false):getType()
 			elseif nTrueStop then
-				nType = vFalseBranch:mutGet(vContext, nLocalSymbol):getType()
+				nType = vFalseBranch:mutGet(vContext, nLocalSymbol, false):getType()
 			else
-				local nTrueType = vTrueBranch:mutGet(vContext, nLocalSymbol):getType()
-				local nFalseType = vFalseBranch:mutGet(vContext, nLocalSymbol):getType()
+				local nTrueType = vTrueBranch:mutGet(vContext, nLocalSymbol, false):getType()
+				local nFalseType = vFalseBranch:mutGet(vContext, nLocalSymbol, false):getType()
 				nType = nTrueType | nFalseType
 			end
 			local nImmutVariable = nLocalSymbol:makeVariable(nType)
@@ -11504,13 +11518,13 @@ function Branch:mergeTwoBranch(vContext, vTrueBranch, vFalseBranch)
 		nAndCase = vFalseBranch._headCase
 	end
 	if nAndCase then
-		self._case = self._case & nAndCase
+		self._curCase = self._curCase & nAndCase
 		self._headCase = self._headCase & nAndCase
 	end
 end
 
 function Branch:assertCase(vVariableCase)
-	self._case = self._case & vVariableCase
+	self._curCase = self._curCase & vVariableCase
 	self._headCase = self._headCase & vVariableCase
 end
 
@@ -11519,7 +11533,7 @@ function Branch:setStop()
 end
 
 function Branch:getCase()
-	return self._case
+	return self._curCase
 end
 
 function Branch:getStop()
@@ -11917,24 +11931,12 @@ end
 
   
 function InstStack:META_GET(
-	vNode,
+	vNode  ,
 	vSelfTerm,
 	vKeyTerm,
 	vNotnil
 )
-	return self:withOnePushContext(vNode, function(vContext)
-		vSelfTerm:foreach(function(vSelfType, vVariableCase)
-			vKeyTerm:foreach(function(vKeyType, vKeyVariableCase)
-				vContext:withCase(vVariableCase & vKeyVariableCase, function()
-					if not vSelfType:meta_get(vContext, vKeyType) then
-						if not OpenTable.is(vSelfType) then
-							vContext:error("index error, key="..tostring(vKeyType))
-						end
-					end
-				end)
-			end)
-		end)
-	end, vNotnil):mergeFirst()
+	return self:anyNodeMetaGet(vNode, vSelfTerm, vKeyTerm, vNode.notnil or false)
 end
 
 function InstStack:META_SET(
@@ -13378,15 +13380,15 @@ function FastServer:getInitializeResult()
 end
 
 function FastServer:rerun(vFileName)
-	local ok, mainFileName = self:thluaSearch("main")
+	local ok, rootFileName = self:thluaSearch("root")
 	if not ok then
-		mainFileName = vFileName
-		self:info("main.thlua not found, run single file:", mainFileName)
+		rootFileName = vFileName
+		self:info("root.thlua not found, run single file:", rootFileName)
 	else
-		self:info("main.thlua found:", mainFileName)
+		self:info("root.thlua found:", rootFileName)
 	end
 	local nRuntime=CompletionRuntime.new(self)
-	local ok, exc = nRuntime:pmain(mainFileName)
+	local ok, exc = nRuntime:pmain(rootFileName)
 	if not ok then
 		if not self._runtime then
 			self._runtime = nRuntime
@@ -13693,7 +13695,9 @@ function FileState:_checkRight()
 		self._errOrEnv = nCodeEnv
 		return true
 	else
-		self._errOrEnv = nCodeEnv
+		if type(nCodeEnv) == "table" then
+			self._errOrEnv = nCodeEnv
+		end
 		return false
 	end
 end
@@ -13961,15 +13965,15 @@ function SlowServer:publishException(vException )
 end
 
 function SlowServer:rerun(vFileUri)
-	local ok, mainFileUri = self:thluaSearch("main")
+	local ok, rootFileUri = self:thluaSearch("root")
 	if not ok then
-		mainFileUri = vFileUri
-		self:info("main.thlua not found, run single file:", mainFileUri)
+		rootFileUri = vFileUri
+		self:info("root.thlua not found, run single file:", rootFileUri)
 	else
-		self:info("main.thlua found:", mainFileUri)
+		self:info("root.thlua found:", rootFileUri)
 	end
 	local nRuntime=DiagnosticRuntime.new(self)
-	local ok, exc = nRuntime:pmain(mainFileUri)
+	local ok, exc = nRuntime:pmain(rootFileUri)
 	if not ok then
 		if not self._runtime then
 			self._runtime = nRuntime
@@ -14226,7 +14230,8 @@ end
 
 function ImmutVariable.new(vTerm)
 	return setmetatable({
-		_term=vTerm,
+		_originTerm=vTerm,
+		_termByFilter={} ,
 		_symbolSet={}  ,
 		_node=false
 	}, ImmutVariable)
@@ -14241,11 +14246,30 @@ function ImmutVariable:addSymbol(vSymbol)
 end
 
 function ImmutVariable:getType()
-	return self._term:getType()
+	return self._originTerm:getType()
 end
 
-function ImmutVariable:getTerm()
-	return self._term
+function ImmutVariable:filterTerm(vContext, vCase)
+	local nOriginTerm = self._originTerm
+	local nType = vCase[self]
+	if nType then
+		if not nType:isNever() then
+			local nTermByFilter = self._termByFilter
+			local nTerm = nTermByFilter[nType]
+			if nTerm then
+				return nTerm
+			end
+			local nTerm = nOriginTerm:filter(vContext, nType)
+			nTerm:initVariable(self)
+			nTermByFilter[nType] = nTerm
+			return nTerm
+		else
+			vContext:error("TODO type is never when get symbol"..tostring(self))
+			return vContext:NeverTerm()
+		end
+	else
+		return nOriginTerm
+	end
 end
 
 function ImmutVariable.is(v)
@@ -14338,6 +14362,7 @@ function RefineTerm.new(
 		_node=vNode,
 		_typeToCase=vTypeToCase or {} ,
 		_type=vType,
+		_notnilTerm=false,
 		_symbolVariable=false   ,
 	}, RefineTerm)
 	vType:foreach(function(vType)
@@ -14507,6 +14532,27 @@ end
 
 function RefineTerm:getNode()
 	return self._node
+end
+
+function RefineTerm:notnilTerm()
+	local nNotnilTerm = self._notnilTerm
+	if nNotnilTerm then
+		return nNotnilTerm
+	end
+	local nType = self._type
+	if not nType:isNilable() then
+		self._notnilTerm = self
+		return self
+	end
+	local nTypeToCase  = {}
+	nType:foreach(function(vAtomType)
+		if not Nil.is(vAtomType) then
+			nTypeToCase[vAtomType] = self._typeToCase[vAtomType]
+		end
+	end)
+	local nTerm = RefineTerm.new(self._node, nType:notnilType(), nTypeToCase)
+	self._notnilTerm = nTerm
+	return nTerm
 end
 
 return RefineTerm

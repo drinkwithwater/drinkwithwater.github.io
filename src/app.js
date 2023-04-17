@@ -134,21 +134,19 @@ var initFunction = function(){
 		rightHeader.update();
 	}
 
+	let exampleKeys = [];
+	for(let k in THLUA_EXAMPLES) {
+		exampleKeys.push(k);
+	}
+	exampleKeys.sort(function(a,b){
+		return a.localeCompare(b);
+	});
+
 	var leftHeader = new Vue({
 		el:"#inputHead",
 		data : {
-			examples:[
-				"hello",
-				"hint_space",
-				"multi_ret",
-				"template",
-				"union_struct",
-				"open_type",
-				"type_cast",
-				"class_function",
-				"object_oriented",
-			],
-			selected:"hello"
+			examples:exampleKeys,
+			selected:"0_hello"
 		},
 		methods: {
 			useExample:function(name){
