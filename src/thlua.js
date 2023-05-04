@@ -5541,7 +5541,13 @@ end
 -- _ENV.pcall = nil
 
 
-function.pass _ENV.tonumber(v:Any, base:OrNil(Integer)):Ret(OrNil(Number))
+function.open _ENV.tonumber(v:Union(String, Number), base)
+    if base == nil then
+        return 0.0@OrNil(Number)
+    else
+        const base:Integer = base
+        return 0@OrNil(Integer)
+    end
 end
 
 function.pass _ENV.tostring(v:Any):Ret(String)
@@ -5829,7 +5835,7 @@ end
 function.pass math.fmod(x:Number, y:Number):Ret(Number)
 end
 
-math.huge = (1.0/0.0) @ Number
+math.huge = 0.0 @ Number
 
 function.pass math.log(x:Number, base:OrNil(Number)):Ret(Number)
     base = base or math.exp(1)
@@ -5843,7 +5849,7 @@ math.maxinteger = 9223372036854775807 @ Integer
 function.pass math.min(x:Number, ...:Number):Ret(Number)
 end
 
-math.mininteger = (-9223372036854775808) @ Integer
+math.mininteger = (0) @ Integer -- TODO fix
 
 function.pass math.modf(x:Number):Ret(Integer, Number)
 end
@@ -6021,7 +6027,7 @@ return [[
 const table = {}
 
 function.open table.concat(list, sep:OrNil(String), i:OrNil(Integer), j:OrNil(Integer))
-    const element:OrNil(String, Integer) = list[1@Number]
+    const element:OrNil(String, Integer) = list[1@Integer]
     return "" @ String
 end
 
@@ -6464,6 +6470,8 @@ local TYPE_BITS = require "thlua.type.TYPE_BITS"
 
 local StringLiteralUnion = require "thlua.type.union.StringLiteralUnion"
 local NumberLiteralUnion = require "thlua.type.union.NumberLiteralUnion"
+local IntegerLiteralUnion = require "thlua.type.union.IntegerLiteralUnion"
+local NumberLiteral = require "thlua.type.basic.NumberLiteral"
 local ObjectUnion = require "thlua.type.union.ObjectUnion"
 local FuncUnion = require "thlua.type.union.FuncUnion"
 local ComplexUnion = require "thlua.type.union.ComplexUnion"
@@ -6492,41 +6500,45 @@ local TrueBitToTrue = {
 
 local TypeCollection = {}
 TypeCollection.__index=TypeCollection
-TypeCollection.__len=function(self)
-	return self.count
-end
 
 function TypeCollection.new(vManager)
 	local self = setmetatable({
 		_manager=vManager,
 		_type=vManager.type,
-		bitsToSet={}  ,
-		bits=0  ,
- 		count=0  ,
+		_bitsToSet={}   ,
+		_metaSet={}   ,
+		_bits=0  ,
+ 		_count=0  ,
 	}, TypeCollection)
 	return self
 end
 
-function TypeCollection:_putOne(vType)
-	local nBitsToSet = self.bitsToSet
-	local nBits = vType.bits
-	local nSet = nBitsToSet[nBits]
-	if not nSet then
-		nSet = {}
-		nBitsToSet[nBits] = nSet
-	end
-	if not nSet[vType] then
-		nSet[vType] = true
-		self.count = self.count + 1
-	end
-end
 
 function TypeCollection:put(vType)
 	local nType = vType:checkAtomUnion()
-	nType:foreach(function(vSubType)
-		self.bits = self.bits | vSubType.bits
-		self:_putOne(vSubType)
+	local nBitsToSet = self._bitsToSet
+	local nMetaSet = self._metaSet
+	local nCurBits = self._bits
+	local nCurCount = self._count
+	nType:foreach(function(vAtomType)
+		nCurBits = nCurBits | vAtomType.bits
+		     
+		local nAtomBits = vAtomType.bits
+		local nSet = nBitsToSet[nAtomBits]
+		if not nSet then
+			nSet = {}
+			nBitsToSet[nAtomBits] = nSet
+		end
+		if not nSet[vAtomType] then
+			nSet[vAtomType] = true
+			nCurCount = nCurCount + 1
+		end
+		     
+		local nMeta = getmetatable(vAtomType)
+		nMetaSet[nMeta] = true
 	end)
+	self._bits = nCurBits
+	self._count = nCurCount
 end
 
 function TypeCollection:_makeSimpleTrueType(vBit, vSet )
@@ -6538,7 +6550,16 @@ function TypeCollection:_makeSimpleTrueType(vBit, vSet )
 		if vSet[nNumberType] then
 			return nNumberType
 		end
-		nUnionType = NumberLiteralUnion.new(self._manager)
+		local nHasFloatLiteral = self._metaSet[NumberLiteral.meta]
+		local nIntegerType = self._type.Integer
+		if vSet[nIntegerType] and not nHasFloatLiteral then
+			return nIntegerType
+		end
+		if nHasFloatLiteral then
+			nUnionType = NumberLiteralUnion.new(self._manager)
+		else
+			nUnionType = IntegerLiteralUnion.new(self._manager)
+		end
 	elseif vBit == TYPE_BITS.STRING then
 		local nStringType = self._type.String
 		if vSet[nStringType] then
@@ -6561,15 +6582,15 @@ function TypeCollection:_makeSimpleTrueType(vBit, vSet )
 end
 
 function TypeCollection:mergeToAtomUnion()
-	local nBits = self.bits
+	local nBits = self._bits
 	   
 	if nBits == 0 then
 		    
 		return self._type.Never
 	else
 		              
-		if self.count == 1 or FastTypeBitsToTrue[nBits] then
-			local nOneType = (next(self.bitsToSet[nBits]))
+		if self._count == 1 or FastTypeBitsToTrue[nBits] then
+			local nOneType = (next(self._bitsToSet[nBits]))
 			return (assert(nOneType, "logic error when type merge"))
 		end
 	end
@@ -6577,7 +6598,7 @@ function TypeCollection:mergeToAtomUnion()
 	local nFalsableBits = nBits & (TYPE_BITS.NIL | TYPE_BITS.FALSE)
 	    
 	local nTrueBitToType  = {}
-	for nBit, nSet in pairs(self.bitsToSet) do
+	for nBit, nSet in pairs(self._bitsToSet) do
 		if TrueBitToTrue[nBit] then
 			nTrueBitToType[nBit] = self:_makeSimpleTrueType(nBit, nSet)
 		end
@@ -6626,6 +6647,8 @@ local StringLiteral = require "thlua.type.basic.StringLiteral"
 local String = require "thlua.type.basic.String"
 local NumberLiteral = require "thlua.type.basic.NumberLiteral"
 local Number = require "thlua.type.basic.Number"
+local IntegerLiteral = require "thlua.type.basic.IntegerLiteral"
+local Integer = require "thlua.type.basic.Integer"
 local BooleanLiteral= require "thlua.type.basic.BooleanLiteral"
 local Nil = require "thlua.type.basic.Nil"
 local Thread = require "thlua.type.basic.Thread"
@@ -6711,6 +6734,7 @@ function TypeManager.new(
 			True = BooleanLiteral.new(vManager, true),
 			Thread = Thread.new(vManager),
 			Number = Number.new(vManager),
+			Integer = Integer.new(vManager),
 			String = String.new(vManager),
 			Truth = Truth.new(vManager),
 			AnyFunction = AnyFunction.new(vManager, vRootNode),
@@ -6718,7 +6742,6 @@ function TypeManager.new(
 			Any = nil  ,
 			AnyObject = nil  ,
 		}
-		self.Integer = self.Number
 		return self
 	end
 	local self = setmetatable({
@@ -6728,7 +6751,9 @@ function TypeManager.new(
 		builtin=nil  ,
 		generic={}   ,
 		_pairToRelation={}   ,
-		_literalDict={}   ,
+		_floatLiteralDict = {} ,
+		_integerLiteralDict = {} ,
+		_sbLiteralDict={}  ,
 		_unionSignToType=(setmetatable({}, {__mode="v"}) )  ,
 		_typeIdCounter=0,
 		_rootNode=vRootNode,
@@ -7036,29 +7061,46 @@ function TypeManager:stackNativeOpenFunction(vFn)
 	return nOpenFn
 end
 
-function TypeManager:Literal(vValue  )  
-	local nLiteralDict = self._literalDict
-	local nLiteralType = nLiteralDict[vValue]
-	if not nLiteralType then
-		local t = type(vValue)
-		if t == "number" then
-			nLiteralType = NumberLiteral.new(self, vValue)
-			nLiteralDict[vValue] = nLiteralType
-		elseif t == "string" then
-			nLiteralType = StringLiteral.new(self, vValue)
-			nLiteralDict[vValue] = nLiteralType
-		elseif t == "boolean" then
-			if vValue then
-				nLiteralType = self.type.True
-			else
-				nLiteralType = self.type.False
+function TypeManager:Literal(vValue  )   
+	local t = type(vValue)
+	if t == "number" then
+		if math.type(vValue) == "integer" then
+			local nLiteralDict = self._integerLiteralDict
+			local nLiteralType = nLiteralDict[vValue]
+			if not nLiteralType then
+				nLiteralType = IntegerLiteral.new(self, vValue)
+				nLiteralDict[vValue] = nLiteralType
 			end
-			nLiteralDict[vValue] = nLiteralType
+			return nLiteralType
 		else
-			error("literal must take number or string value"..t)
+			local nLiteralDict = self._floatLiteralDict
+			local nLiteralType = nLiteralDict[vValue]
+			if not nLiteralType then
+				nLiteralType = NumberLiteral.new(self, vValue)
+				nLiteralDict[vValue] = nLiteralType
+			end
+			return nLiteralType
 		end
+	else
+		local nLiteralDict = self._sbLiteralDict
+		local nLiteralType = nLiteralDict[vValue]
+		if not nLiteralType then
+			if t == "string" then
+				nLiteralType = StringLiteral.new(self, vValue)
+				nLiteralDict[vValue] = nLiteralType
+			elseif t == "boolean" then
+				if vValue then
+					nLiteralType = self.type.True
+				else
+					nLiteralType = self.type.False
+				end
+				nLiteralDict[vValue] = nLiteralType
+			else
+				error("literal must take boolean or number or string value but got:"..tostring(t))
+			end
+		end
+		return nLiteralType
 	end
-	return nLiteralType
 end
 
 function TypeManager:TypeTuple(vNode, vTypeList)
@@ -7289,6 +7331,8 @@ function TypeManager:literal2Primitive(vType)
 		return self.type.Boolean:checkAtomUnion()
 	elseif NumberLiteral.is(vType) then
 		return self.type.Number
+	elseif IntegerLiteral.is(vType) then
+		return self.type.Integer
 	elseif StringLiteral.is(vType) then
 		return self.type.String
 	else
@@ -7426,8 +7470,8 @@ local OpenTable = require "thlua.type.object.OpenTable"
 local AutoTable = require "thlua.type.object.AutoTable"
 local RefineTerm = require "thlua.term.RefineTerm"
 local StringLiteral = require "thlua.type.basic.StringLiteral"
-local NumberLiteral = require "thlua.type.basic.NumberLiteral"
-local Number = require "thlua.type.basic.Number"
+local IntegerLiteral = require "thlua.type.basic.IntegerLiteral"
+local Integer = require "thlua.type.basic.Integer"
 local Truth = require "thlua.type.basic.Truth"
 local Exception = require "thlua.Exception"
 local VariableCase = require "thlua.term.VariableCase"
@@ -7524,7 +7568,7 @@ function native.make(vRuntime)
 					return vContext:RefineTerm(nManager:Literal(#vTermTuple-1))
 				end
 			else
-				if NumberLiteral.is(nFirstType) then
+				if IntegerLiteral.is(nFirstType) then
 					local nStart = nFirstType:getLiteral()
 					if nStart > 0 then
 						return vTermTuple:select(vContext, nStart + 1)
@@ -7536,7 +7580,7 @@ function native.make(vRuntime)
 						return vContext:FixedTermTuple({})
 					end
 				else
-					if Number.is(nFirstType) then
+					if Integer.is(nFirstType) then
 						local nCollection = nManager:TypeCollection()
 						for i=2, #vTermTuple do
 							local nType = vTermTuple:get(vContext, i):getType()
@@ -7557,7 +7601,7 @@ function native.make(vRuntime)
 							return nManager:TypeTuple(vContext:getNode(), nReList):makeTermTuple(vContext)
 						end
 					else
-						vContext:error("select's first value must be number or number-literal")
+						vContext:error("select's first value must be integer or integer-literal")
 						return vContext:FixedTermTuple({})
 					end
 				end
@@ -7623,15 +7667,15 @@ function native.make(vRuntime)
 end
 
 function native.make_inext(vManager)
-	local nNumber = vManager.type.Number
+	local nInteger = vManager.type.Integer
 	local nNil = vManager.type.Nil
 	return vManager:fixedNativeOpenFunction(function(vContext, vTermTuple)
 		local nFirstTerm = vTermTuple:get(vContext, 1)
 		    
-		local nNotNilValue = vContext:getStack():anyNodeMetaGet(vContext:getNode(), nFirstTerm, vContext:RefineTerm(nNumber), true):getType()
+		local nNotNilValue = vContext:getStack():anyNodeMetaGet(vContext:getNode(), nFirstTerm, vContext:RefineTerm(nInteger), true):getType()
 		local nValueTerm = vContext:RefineTerm(vManager:checkedUnion(nNotNilValue, nNil))
 		local nKeyValue  = {
-			[nNumber]=nNotNilValue,
+			[nInteger]=nNotNilValue,
 			[nNil]=nNil,
 		}
 		local nTypeCaseList = {}
@@ -7677,8 +7721,9 @@ function native.make_next(vManager)
 end
 
 function native.make_mathematic(vManager)
-	local nNumber = vManager.type.Number
-	return vManager:checkedFn(nNumber, nNumber):Ret(nNumber)
+	    
+	local nInteger = vManager.type.Integer
+	return vManager:checkedFn(nInteger, nInteger):Ret(nInteger)
 end
 
 function native.make_comparison(vManager)
@@ -7687,8 +7732,8 @@ function native.make_comparison(vManager)
 end
 
 function native.make_bitwise(vManager)
-	local nNumber = vManager.type.Number
-	return vManager:checkedFn(nNumber, nNumber):Ret(nNumber)
+	local nInteger = vManager.type.Integer
+	return vManager:checkedFn(nInteger, nInteger):Ret(nInteger)
 end
 
 function native.make_concat(vManager)
@@ -8735,7 +8780,9 @@ function BaseRuntime:pmain(vRootFileUri)
 		end
 	end
 	local t2 = os.clock()
-	print(t2-t1)
+	do
+		print(t2-t1)
+	end
 	 
 	return ok, err
 end
@@ -8918,7 +8965,7 @@ end
 function BaseRuntime:stackNodeError(vStack, vNode, ...)
 	print("[ERROR] "..tostring(vNode), ...)
 	self:_save(1, vNode, ...)
-	local nPrefix = "(trace)"
+	local nPrefix = "(open)"
 	while OpenStack.is(vStack) do
 		local nStackNode = vStack:getNode()
 		if nStackNode ~= vNode and not vStack:isRequire() then
@@ -13606,12 +13653,12 @@ end
 
 function BaseAtomType:meta_len(vContext)
 	vContext:error(tostring(self).." can't take len oper")
-	return self._manager.type.Number
+	return self._manager.type.Integer
 end
 
 function BaseAtomType:meta_uop_some(vContext, vOper)
 	vContext:error(tostring(self).." can't take uop :"..vOper)
-	return self._manager.type.Number
+	return self._manager.type.Integer
 end
 
    
@@ -13961,6 +14008,109 @@ return BooleanLiteral
 end end
 --thlua.type.basic.BooleanLiteral end ==========)
 
+--thlua.type.basic.Integer begin ==========(
+do local _ENV = _ENV
+packages['thlua.type.basic.Integer'] = function (...)
+
+local IntegerLiteral = require "thlua.type.basic.IntegerLiteral"
+local OPER_ENUM = require "thlua.type.OPER_ENUM"
+local TYPE_BITS = require "thlua.type.TYPE_BITS"
+local BaseAtomType = require "thlua.type.basic.BaseAtomType"
+local class = require "thlua.class"
+
+  
+
+local Integer = class (BaseAtomType)
+
+function Integer:ctor(vManager)
+	self.bits=TYPE_BITS.NUMBER
+end
+
+function Integer:detailString(v, vVerbose)
+	return "Integer"
+end
+
+function Integer:meta_uop_some(vContext, vOper)
+	return self
+end
+
+function Integer:native_getmetatable(vContext)
+	return self._manager.type.Nil
+end
+
+function Integer:native_type()
+	return self._manager:Literal("number")
+end
+
+function Integer:assumeIncludeAtom(vAssumetSet, vType, _)
+	if IntegerLiteral.is(vType) then
+		return self
+	elseif self == vType then
+		return self
+	else
+		return false
+	end
+end
+
+function Integer:isSingleton()
+	return false
+end
+
+return Integer
+
+end end
+--thlua.type.basic.Integer end ==========)
+
+--thlua.type.basic.IntegerLiteral begin ==========(
+do local _ENV = _ENV
+packages['thlua.type.basic.IntegerLiteral'] = function (...)
+
+local OPER_ENUM = require "thlua.type.OPER_ENUM"
+local TYPE_BITS = require "thlua.type.TYPE_BITS"
+local BaseAtomType = require "thlua.type.basic.BaseAtomType"
+local class = require "thlua.class"
+
+
+  
+
+local IntegerLiteral = class (BaseAtomType)
+
+function IntegerLiteral:ctor(vManager, vLiteral)
+	self.literal=vLiteral
+	self.bits=TYPE_BITS.NUMBER
+end
+
+function IntegerLiteral:getLiteral()
+	return self.literal
+end
+
+function IntegerLiteral:native_type()
+	return self._manager:Literal("number")
+end
+
+function IntegerLiteral:meta_uop_some(vContext, vOper)
+	if vOper == "-" then
+		return self._manager:Literal(-self.literal)
+	elseif vOper == "~" then
+		return self._manager:Literal(~self.literal)
+	else
+		return self._manager.type.Never
+	end
+end
+
+function IntegerLiteral:detailString(vCache, vVerbose)
+	return "Literal("..self.literal..")"
+end
+
+function IntegerLiteral:isSingleton()
+	return true
+end
+
+return IntegerLiteral
+
+end end
+--thlua.type.basic.IntegerLiteral end ==========)
+
 --thlua.type.basic.Nil begin ==========(
 do local _ENV = _ENV
 packages['thlua.type.basic.Nil'] = function (...)
@@ -14020,6 +14170,8 @@ do local _ENV = _ENV
 packages['thlua.type.basic.Number'] = function (...)
 
 local NumberLiteral = require "thlua.type.basic.NumberLiteral"
+local IntegerLiteral = require "thlua.type.basic.IntegerLiteral"
+local Integer = require "thlua.type.basic.Integer"
 local OPER_ENUM = require "thlua.type.OPER_ENUM"
 local TYPE_BITS = require "thlua.type.TYPE_BITS"
 local BaseAtomType = require "thlua.type.basic.BaseAtomType"
@@ -14051,6 +14203,10 @@ end
 
 function Number:assumeIncludeAtom(vAssumetSet, vType, _)
 	if NumberLiteral.is(vType) then
+		return self
+	elseif IntegerLiteral.is(vType) then
+		return self
+	elseif Integer.is(vType) then
 		return self
 	elseif self == vType then
 		return self
@@ -14149,7 +14305,7 @@ function String:native_type()
 end
 
 function String:meta_len(vContext)
-	return self._manager.type.Number
+	return self._manager.type.Integer
 end
 
 function String:meta_get(vContext, vKeyType)
@@ -14211,7 +14367,7 @@ function StringLiteral:isSingleton()
 end
 
 function StringLiteral:meta_len(vContext)
-	return self._manager.type.Number
+	return self._manager.type.Integer
 end
 
 function StringLiteral:meta_get(vContext, vKeyType)
@@ -16205,7 +16361,7 @@ end
 
 function OpenTable:meta_len(vContext)
 	 
-	return self._manager.type.Number
+	return self._manager.type.Integer
 end
 
 function OpenTable:initByKeyValueTerm(vNode, vBranch, vKeyType, vValueDict )
@@ -16549,7 +16705,7 @@ end
 
 function SealTable:meta_len(vContext)
 	 
-	return self._manager.type.Number
+	return self._manager.type.Integer
 end
 
 function SealTable:ctxWait(vContext)
@@ -17238,6 +17394,10 @@ function TypedObject:putCompletion(vCompletion)
 	end
 end
 
+function TypedObject:native_getmetatable(vContext)
+	return self._manager:checkedUnion(self._manager.type.Nil, self._manager.type.Truth)
+end
+
 return TypedObject
 
 end end
@@ -17716,6 +17876,67 @@ return FuncUnion
 end end
 --thlua.type.union.FuncUnion end ==========)
 
+--thlua.type.union.IntegerLiteralUnion begin ==========(
+do local _ENV = _ENV
+packages['thlua.type.union.IntegerLiteralUnion'] = function (...)
+
+local IntegerLiteral = require "thlua.type.basic.IntegerLiteral"
+local Integer = require "thlua.type.basic.Integer"
+local Number = require "thlua.type.basic.Number"
+local Truth = require "thlua.type.basic.Truth"
+local TYPE_BITS = require "thlua.type.TYPE_BITS"
+
+local BaseUnionType = require "thlua.type.union.BaseUnionType"
+local class = require "thlua.class"
+
+  
+
+local IntegerLiteralUnion = class (BaseUnionType)
+
+function IntegerLiteralUnion:ctor(vTypeManager)
+	self._literalSet={}  
+	self.bits=TYPE_BITS.NUMBER
+end
+
+function IntegerLiteralUnion:putAwait(vType)
+	if IntegerLiteral.is(vType) then
+		self._literalSet[vType] = true
+	else
+		error("set put wrong")
+	end
+end
+
+function IntegerLiteralUnion:assumeIntersectAtom(vAssumeSet, vType)
+	if Integer.is(vType) or Number.is(vType) or Truth.is(vType) then
+		return self
+	else
+		return self:assumeIncludeAtom(nil, vType)
+	end
+end
+
+function IntegerLiteralUnion:assumeIncludeAtom(vAssumeSet, vType, _)
+	if IntegerLiteral.is(vType) then
+		if self._literalSet[vType] then
+			return vType
+		else
+			return false
+		end
+	else
+		return false
+	end
+end
+
+function IntegerLiteralUnion:foreach(vFunc)
+	for nLiteralType, v in pairs(self._literalSet) do
+		vFunc(nLiteralType)
+	end
+end
+
+return IntegerLiteralUnion
+
+end end
+--thlua.type.union.IntegerLiteralUnion end ==========)
+
 --thlua.type.union.Never begin ==========(
 do local _ENV = _ENV
 packages['thlua.type.union.Never'] = function (...)
@@ -17766,6 +17987,9 @@ packages['thlua.type.union.NumberLiteralUnion'] = function (...)
 
 local NumberLiteral = require "thlua.type.basic.NumberLiteral"
 local Number = require "thlua.type.basic.Number"
+local IntegerLiteral = require "thlua.type.basic.IntegerLiteral"
+local IntegerLiteralUnion = require "thlua.type.union.IntegerLiteralUnion"
+local Integer = require "thlua.type.basic.Integer"
 local Truth = require "thlua.type.basic.Truth"
 local TYPE_BITS = require "thlua.type.TYPE_BITS"
 
@@ -17777,13 +18001,39 @@ local class = require "thlua.class"
 local NumberLiteralUnion = class (BaseUnionType)
 
 function NumberLiteralUnion:ctor(vTypeManager)
-	self._literalSet={}  
+	self._floatLiteralSet={}  
+	self._integerPart=false  
 	self.bits=TYPE_BITS.NUMBER
+end
+
+function NumberLiteralUnion:updateUnify()
+	local nIntegerPart = self._integerPart
+	if IntegerLiteralUnion.is(nIntegerPart) then
+		self._integerPart = (self._manager:_unifyUnion(nIntegerPart) ) 
+	end
 end
 
 function NumberLiteralUnion:putAwait(vType)
 	if NumberLiteral.is(vType) then
-		self._literalSet[vType] = true
+		self._floatLiteralSet[vType] = true
+	elseif Integer.is(vType) then
+		self._integerPart = vType
+	elseif IntegerLiteral.is(vType) then
+		local nIntegerPart = self._integerPart
+		if not nIntegerPart then
+			self._integerPart = vType
+		elseif IntegerLiteral.is(nIntegerPart) then
+			local nIntegerUnion = IntegerLiteralUnion.new(self._manager)
+			nIntegerUnion:putAwait(vType)
+			nIntegerUnion:putAwait(nIntegerPart)
+			self._integerPart = nIntegerUnion
+		elseif IntegerLiteralUnion.is(nIntegerPart) then
+			nIntegerPart:putAwait(vType)
+		elseif Integer.is(nIntegerPart) then
+			 
+		else
+			error("set put wrong")
+		end
 	else
 		error("set put wrong")
 	end
@@ -17792,6 +18042,8 @@ end
 function NumberLiteralUnion:assumeIntersectAtom(vAssumeSet, vType)
 	if Number.is(vType) or Truth.is(vType) then
 		return self
+	elseif Integer.is(vType) then
+		return self._integerPart
 	else
 		return self:assumeIncludeAtom(nil, vType)
 	end
@@ -17799,19 +18051,24 @@ end
 
 function NumberLiteralUnion:assumeIncludeAtom(vAssumeSet, vType, _)
 	if NumberLiteral.is(vType) then
-		if self._literalSet[vType] then
+		if self._floatLiteralSet[vType] then
 			return vType
 		else
 			return false
 		end
 	else
-		return false
+		local nIntegerPart = self._integerPart
+		return nIntegerPart and nIntegerPart:assumeIncludeAtom(vAssumeSet, vType, _)
 	end
 end
 
 function NumberLiteralUnion:foreach(vFunc)
-	for nLiteralType, v in pairs(self._literalSet) do
+	for nLiteralType, v in pairs(self._floatLiteralSet) do
 		vFunc(nLiteralType)
+	end
+	local nIntegerPart = self._integerPart
+	if nIntegerPart then
+		nIntegerPart:foreach(vFunc)
 	end
 end
 

@@ -149,7 +149,7 @@ const a:Any = math.random() > 0.5 and 321 or false
 
  */}).toString().slice(14, -3),'2_2_type_union':(function(){/* 
 -- define union
-const t:Union(Number, String) = 321
+const t:Union(Integer, String) = 321
 
 -- assign when t is table
 if type(t) == "number" then
