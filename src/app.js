@@ -142,7 +142,7 @@ var initFunction = function(){
 		el:"#inputHead",
 		data : {
 			examples:exampleKeys,
-			selected:"0_hello"
+			selected:"0_helloworld"
 		},
 		methods: {
 			useExample:function(name){
