@@ -1,4 +1,4 @@
-var THLUA_EXAMPLES={'0_hello':(function(){/* 
+var THLUA_EXAMPLES={'0_helloworld':(function(){/* 
 -- 0. TypeHintLua is a library or a language for type hinting and static checking of lua
 
 -- define a const variable, syntax error will be thrown if const variable is modified
@@ -18,7 +18,7 @@ takeString(oneInt) -- error, call param not match
 
 -- you can write something in hint space
 (@do
-	print("Hello in hint space")
+	print("Hello World in hint space")
 	-- $ for get type in lua space
 	print($oneInt)
 end)

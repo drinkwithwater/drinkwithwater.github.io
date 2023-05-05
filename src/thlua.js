@@ -3129,7 +3129,7 @@ local G = lpeg.P { "TypeHintLua";
 		local Field = Pair + vv.Expr
 		local fieldsep = symb(",") + symb(";")
 		local FieldList = (Field * (fieldsep * Field)^0 * fieldsep^-1)^-1
-		return tagC.Table(symb("{") * lpeg.Cg(vv.LongHint*(symb(",") + symb(";"))^-1, "hintLong")^-1 * FieldList * symbA("}"))
+		return tagC.Table(symb("{") * lpeg.Cg(vv.LongHint, "hintLong")^-1 * FieldList * symbA("}"))
 	end)();
 
 	IdentUse = Cpos*vv.Name*(vv.NotnilHint * cc(true) + cc(false))*Cpos/parF.identUse;
@@ -4889,11 +4889,60 @@ return AssignContext
 end end
 --thlua.context.AssignContext end ==========)
 
+--thlua.context.CompletionKind begin ==========(
+do local _ENV = _ENV
+packages['thlua.context.CompletionKind'] = function (...)
+
+return {
+    Text = 1,
+    Method = 2,
+    Function = 3,
+    Constructor = 4,
+    Field = 5,
+    Variable = 6,
+    Class = 7,
+    Interface = 8,
+    Module = 9,
+    Property = 10,
+    Unit = 11,
+    Value = 12,
+    Enum = 13,
+    Keyword = 14,
+    Snippet = 15,
+    Color = 16,
+    File = 17,
+    Reference = 18,
+    Folder = 19,
+    EnumMember = 20,
+    Constant = 21,
+    Struct = 22,
+    Event = 23,
+    Operator = 24,
+    TypeParameter = 25,
+}
+end end
+--thlua.context.CompletionKind end ==========)
+
 --thlua.context.FieldCompletion begin ==========(
 do local _ENV = _ENV
 packages['thlua.context.FieldCompletion'] = function (...)
 
 local class = require "thlua.class"
+local CompletionKind = require "thlua.context.CompletionKind"
+local MemberFunction = require "thlua.type.func.MemberFunction"
+local BaseFunction = require "thlua.type.func.BaseFunction"
+local ClassFactory = require "thlua.type.func.ClassFactory"
+local Reference = require "thlua.refer.Reference"
+local SpaceTable = require "thlua.refer.SpaceTable"
+local SpaceBuiltin = require "thlua.refer.SpaceBuiltin"
+
+local TemplateReferCom = require "thlua.refer.TemplateReferCom"
+local TypeReferCom = require "thlua.refer.TypeReferCom"
+
+local FloatLiteral = require "thlua.type.basic.FloatLiteral"
+local IntegerLiteral = require "thlua.type.basic.IntegerLiteral"
+local StringLiteral = require "thlua.type.basic.StringLiteral"
+local BooleanLiteral= require "thlua.type.basic.BooleanLiteral"
 
 
 	  
@@ -4906,11 +4955,57 @@ local FieldCompletion = class ()
 
 function FieldCompletion:ctor()
 	self._passDict = {} 
-	self._keyToType = {} 
+	self._keyToKind = {} 
 end
 
-function FieldCompletion:putPair(vKey, vValue )
-	self._keyToType[vKey] = true
+local LiteralMetaDict  = {
+	[StringLiteral.meta]= true,
+	[IntegerLiteral.meta]= true,
+	[FloatLiteral.meta]= true,
+	[BooleanLiteral.meta]= true,
+}
+
+local function isLiteral(vType)
+	local nMeta = getmetatable(vType)
+	if nMeta and LiteralMetaDict[nMeta] then
+		return true
+	else
+		return false
+	end
+end
+
+function FieldCompletion:putField(vKey, vValue)
+	local nType = vValue:checkAtomUnion()
+	if MemberFunction.is(nType) then
+		self._keyToKind[vKey] = CompletionKind.Method
+	elseif ClassFactory.is(nType) then
+		self._keyToKind[vKey] = CompletionKind.Function
+	elseif BaseFunction.is(nType) then
+		self._keyToKind[vKey] = CompletionKind.Function
+	elseif isLiteral(nType) then
+		self._keyToKind[vKey] = CompletionKind.Constant
+	else
+		self._keyToKind[vKey] = CompletionKind.Field
+	end
+end
+
+function FieldCompletion:putSpaceField(vKey, vValue)
+	if SpaceTable.checkSpace(vValue) then
+		self._keyToKind[vKey] = CompletionKind.Module
+	elseif SpaceBuiltin.is(vValue) then
+		self._keyToKind[vKey] = CompletionKind.Function
+	elseif Reference.is(vValue) then
+		local nCom = vValue:getComNowait()
+		if TypeReferCom.is(nCom) then
+			self._keyToKind[vKey] = CompletionKind.Class
+		elseif TemplateReferCom.is(nCom) then
+			self._keyToKind[vKey] = CompletionKind.Function
+		else
+			self._keyToKind[vKey] = CompletionKind.Variable
+		end
+	else
+		self._keyToKind[vKey] = CompletionKind.Class
+	end
 end
 
 function FieldCompletion:testAndSetPass(vAtomType)
@@ -4923,8 +5018,8 @@ function FieldCompletion:testAndSetPass(vAtomType)
 end
 
 function FieldCompletion:foreach(vOnPair )
-	for k,v in pairs(self._keyToType) do
-		vOnPair(k,v)
+	for k,v in pairs(self._keyToKind) do
+		vOnPair(k, v)
 	end
 end
 
@@ -5835,7 +5930,7 @@ end
 function.pass math.fmod(x:Number, y:Number):Ret(Number)
 end
 
-math.huge = 0.0 @ Number
+math.huge = nil @! Literal(1.0/0.0)
 
 function.pass math.log(x:Number, base:OrNil(Number)):Ret(Number)
     base = base or math.exp(1)
@@ -5844,17 +5939,17 @@ end
 function.pass math.max(x:Number, ...:Number):Ret(Number)
 end
 
-math.maxinteger = 9223372036854775807 @ Integer
+math.maxinteger = nil@! Literal(9223372036854775807)
 
 function.pass math.min(x:Number, ...:Number):Ret(Number)
 end
 
-math.mininteger = (0) @ Integer -- TODO fix
+math.mininteger = nil@! Literal(-9223372036854775808)
 
 function.pass math.modf(x:Number):Ret(Integer, Number)
 end
 
-math.pi = 3.14159265358979323846 @ Number
+math.pi = 3.14159265358979323846
 
 function.pass math.rad(x:Number):Ret(Number)
 end
@@ -6469,9 +6564,9 @@ packages['thlua.manager.TypeCollection'] = function (...)
 local TYPE_BITS = require "thlua.type.TYPE_BITS"
 
 local StringLiteralUnion = require "thlua.type.union.StringLiteralUnion"
-local NumberLiteralUnion = require "thlua.type.union.NumberLiteralUnion"
+local MixingNumberUnion = require "thlua.type.union.MixingNumberUnion"
 local IntegerLiteralUnion = require "thlua.type.union.IntegerLiteralUnion"
-local NumberLiteral = require "thlua.type.basic.NumberLiteral"
+local FloatLiteral = require "thlua.type.basic.FloatLiteral"
 local ObjectUnion = require "thlua.type.union.ObjectUnion"
 local FuncUnion = require "thlua.type.union.FuncUnion"
 local ComplexUnion = require "thlua.type.union.ComplexUnion"
@@ -6550,13 +6645,13 @@ function TypeCollection:_makeSimpleTrueType(vBit, vSet )
 		if vSet[nNumberType] then
 			return nNumberType
 		end
-		local nHasFloatLiteral = self._metaSet[NumberLiteral.meta]
+		local nHasFloatLiteral = self._metaSet[FloatLiteral.meta]
 		local nIntegerType = self._type.Integer
 		if vSet[nIntegerType] and not nHasFloatLiteral then
 			return nIntegerType
 		end
 		if nHasFloatLiteral then
-			nUnionType = NumberLiteralUnion.new(self._manager)
+			nUnionType = MixingNumberUnion.new(self._manager)
 		else
 			nUnionType = IntegerLiteralUnion.new(self._manager)
 		end
@@ -6645,7 +6740,7 @@ local Exception = require "thlua.Exception"
 local Never = require "thlua.type.union.Never"
 local StringLiteral = require "thlua.type.basic.StringLiteral"
 local String = require "thlua.type.basic.String"
-local NumberLiteral = require "thlua.type.basic.NumberLiteral"
+local FloatLiteral = require "thlua.type.basic.FloatLiteral"
 local Number = require "thlua.type.basic.Number"
 local IntegerLiteral = require "thlua.type.basic.IntegerLiteral"
 local Integer = require "thlua.type.basic.Integer"
@@ -6671,7 +6766,7 @@ local AutoMemberFunction = require "thlua.type.func.AutoMemberFunction"
 local TypedMemberFunction = require "thlua.type.func.TypedMemberFunction"
 
 local StringLiteralUnion = require "thlua.type.union.StringLiteralUnion"
-local NumberLiteralUnion = require "thlua.type.union.NumberLiteralUnion"
+local MixingNumberUnion = require "thlua.type.union.MixingNumberUnion"
 local ObjectUnion = require "thlua.type.union.ObjectUnion"
 local FuncUnion = require "thlua.type.union.FuncUnion"
 local FalsableUnion = require "thlua.type.union.FalsableUnion"
@@ -6712,7 +6807,8 @@ local function makeBuiltinFunc(vManager)
 		next=native.make_next(vManager),
 		inext=native.make_inext(vManager),
 		bop={
-			mathematic=native.make_mathematic(vManager),
+			mathematic_notdiv=native.make_mathematic(vManager),
+			mathematic_divide=native.make_mathematic(vManager, true),
 			comparison=native.make_comparison(vManager),
 			bitwise=native.make_bitwise(vManager),
 			concat=native.make_concat(vManager),
@@ -6817,6 +6913,14 @@ end
 
 function TypeManager:lateInitStringLib(vStringLib)
 	self.builtin.string = vStringLib
+end
+
+function TypeManager:isLiteral(vType)
+	if StringLiteral.is(vType) or FloatLiteral.is(vType) or IntegerLiteral.is(vType) or BooleanLiteral.is(vType) then
+		return true
+	else
+		return false
+	end
 end
 
 function TypeManager:_checkAllType(vData)
@@ -7076,7 +7180,7 @@ function TypeManager:Literal(vValue  )
 			local nLiteralDict = self._floatLiteralDict
 			local nLiteralType = nLiteralDict[vValue]
 			if not nLiteralType then
-				nLiteralType = NumberLiteral.new(self, vValue)
+				nLiteralType = FloatLiteral.new(self, vValue)
 				nLiteralDict[vValue] = nLiteralType
 			end
 			return nLiteralType
@@ -7329,7 +7433,7 @@ end
 function TypeManager:literal2Primitive(vType)
 	if BooleanLiteral.is(vType) then
 		return self.type.Boolean:checkAtomUnion()
-	elseif NumberLiteral.is(vType) then
+	elseif FloatLiteral.is(vType) then
 		return self.type.Number
 	elseif IntegerLiteral.is(vType) then
 		return self.type.Integer
@@ -7472,6 +7576,8 @@ local RefineTerm = require "thlua.term.RefineTerm"
 local StringLiteral = require "thlua.type.basic.StringLiteral"
 local IntegerLiteral = require "thlua.type.basic.IntegerLiteral"
 local Integer = require "thlua.type.basic.Integer"
+local FloatLiteral = require "thlua.type.basic.FloatLiteral"
+local Number = require "thlua.type.basic.Number"
 local Truth = require "thlua.type.basic.Truth"
 local Exception = require "thlua.Exception"
 local VariableCase = require "thlua.term.VariableCase"
@@ -7720,10 +7826,32 @@ function native.make_next(vManager)
 	end)
 end
 
-function native.make_mathematic(vManager)
-	    
+function native.make_mathematic(vManager, vIsDivide)
+	local nNumber = vManager.type.Number
+	if vIsDivide then
+		return vManager:checkedFn(nNumber, nNumber):Ret(nNumber)
+	end
 	local nInteger = vManager.type.Integer
-	return vManager:checkedFn(nInteger, nInteger):Ret(nInteger)
+	return vManager:stackNativeOpenFunction(function(vStack, vTermTuple)
+		local nOperCtx = vStack:inplaceOper()
+		local nType1 = vTermTuple:checkFixed(nOperCtx, 1):getType()
+		local nType2 = vTermTuple:checkFixed(nOperCtx, 2):getType()
+		local nHasFloat = false
+		local nEachFn = function(vAtomType)
+			if FloatLiteral.is(vAtomType) or Number.is(vAtomType) then
+				nHasFloat = true
+			elseif not (IntegerLiteral.is(vAtomType) or Integer.is(vAtomType)) then
+				nOperCtx:error("math operator must take number")
+			end
+		end
+		nType1:foreach(nEachFn)
+		nType2:foreach(nEachFn)
+		if nHasFloat then
+			return nOperCtx:FixedTermTuple({nOperCtx:RefineTerm(nNumber)})
+		else
+			return nOperCtx:FixedTermTuple({nOperCtx:RefineTerm(nInteger)})
+		end
+	end)
 end
 
 function native.make_comparison(vManager)
@@ -7968,6 +8096,7 @@ local Exception = require "thlua.Exception"
 local Reference = require "thlua.refer.Reference"
 local StringLiteral = require "thlua.type.basic.StringLiteral"
 local SpaceTable = require "thlua.refer.SpaceTable"
+local SpaceBuiltin = require "thlua.refer.SpaceBuiltin"
 local NameLocation= require "thlua.refer.NameLocation"
 local Node = require "thlua.code.Node"
 local class = require "thlua.class"
@@ -8057,6 +8186,8 @@ function Namespace:localSet(vNode, vKeyType, vNewValue)
 		if nAssignSpace then
 			nAssignSpace:trySetKey(tostring(vKeyType))
 			self._key2type[vKeyType] = vNewValue  
+		elseif SpaceBuiltin.is(vNewValue) then
+            error(Exception.new("space-builtin function can't assign between space"..tostring(vKeyType), vNode))
 		else
 			local refer = self._manager:Reference(tostring(vKeyType))
 			refer:setAssignAsync(vNode, function() return vNewValue end)
@@ -8085,7 +8216,7 @@ end
 function Namespace:putCompletion(vCompletion)
 	for k,v in pairs(self._key2type) do
 		if StringLiteral.is(k) then
-			vCompletion:putPair(k:getLiteral(), v)
+			vCompletion:putSpaceField(k:getLiteral(), v)
 		end
 	end
 end
@@ -8417,6 +8548,40 @@ return Reference
 end end
 --thlua.refer.Reference end ==========)
 
+--thlua.refer.SpaceBuiltin begin ==========(
+do local _ENV = _ENV
+packages['thlua.refer.SpaceBuiltin'] = function (...)
+
+local Node = require "thlua.code.Node"
+local class = require "thlua.class"
+
+  
+
+local SpaceBuiltin = {}
+SpaceBuiltin.__index = SpaceBuiltin
+SpaceBuiltin.__tostring=function(self)
+    return "BuiltinFn-"..self._name
+end
+SpaceBuiltin.__call=function(self, ...)
+    return self._func(Node.newDebugNode(), ...)
+end
+
+function SpaceBuiltin.new(vFunc, vName)
+    return setmetatable({
+        _func=vFunc,
+        _name=vName,
+    }, SpaceBuiltin)
+end
+
+function SpaceBuiltin.is(v)
+    return getmetatable(v) == SpaceBuiltin
+end
+
+return SpaceBuiltin
+
+end end
+--thlua.refer.SpaceBuiltin end ==========)
+
 --thlua.refer.SpaceTable begin ==========(
 do local _ENV = _ENV
 packages['thlua.refer.SpaceTable'] = function (...)
@@ -8618,6 +8783,7 @@ local Namespace = require "thlua.refer.Namespace"
 local Letspace = require "thlua.refer.Letspace"
 local Exception = require "thlua.Exception"
 local VariableCase = require "thlua.term.VariableCase"
+local SpaceBuiltin = require "thlua.refer.SpaceBuiltin"
 
 local BaseStack = require "thlua.runtime.BaseStack"
 local OpenStack = require "thlua.runtime.OpenStack"
@@ -8780,9 +8946,7 @@ function BaseRuntime:pmain(vRootFileUri)
 		end
 	end
 	local t2 = os.clock()
-	do
-		print(t2-t1)
-	end
+	print(t2-t1)
 	 
 	return ok, err
 end
@@ -8902,37 +9066,37 @@ function BaseRuntime:buildSimpleGlobal()
 	}
 	local nManager = self._manager
 	for k,v in pairs(l) do
-		nGlobal[k]=function(...)
-			return nManager[v](nManager, Node.newDebugNode(), ...)
-		end
+		nGlobal[k]=SpaceBuiltin.new(function(vNode, ...)
+			return nManager[v](nManager, vNode, ...)
+		end, k)
 	end
-	nGlobal.Literal=function(v)
+	nGlobal.Literal=SpaceBuiltin.new(function(vNode, v)
 		return nManager:Literal(v)
-	end
-	nGlobal.namespace=function()
-		return self:TreeNamespace(Node.newDebugNode()):getLocalTable()
-	end
-	nGlobal.lock=function(vType)
+	end, "Literal")
+	nGlobal.namespace=SpaceBuiltin.new(function(vNode)
+		return self:TreeNamespace(vNode):getLocalTable()
+	end, "namespace")
+	nGlobal.lock=SpaceBuiltin.new(function(vNode, vType)
 		vType:foreach(function(vAtom)
 			vAtom:setLocked()
 		end)
-	end
-	nGlobal.import=function(vPath)
+	end, "lock")
+	nGlobal.import=SpaceBuiltin.new(function(vNode, vPath)
 		return self:import(vPath)
-	end
-	nGlobal.setPath=function(vPath)
+	end, "import")
+	nGlobal.setPath=SpaceBuiltin.new(function(vNode, vPath)
 		self._searchPath = vPath
-	end
-	nGlobal.foreachPair=function(vObject, vFunc)
+	end, "setPath")
+	nGlobal.foreachPair=SpaceBuiltin.new(function(vNode, vObject, vFunc)
 		local vObject = vObject:checkAtomUnion()
 		local d = vObject:copyValueDict(vObject)
 		for k,v in pairs(d) do
 			vFunc(k,v)
 		end
-	end
-	nGlobal.print=function(...)
-		self:nodeInfo(Node.newDebugNode(), ...)
-	end
+	end, "foreachPair")
+	nGlobal.print=SpaceBuiltin.new(function(vNode, ...)
+		self:nodeInfo(vNode, ...)
+	end, "print")
 	local nRetGlobal = {}
 	for k,v in pairs(nGlobal) do
 		nRetGlobal[self._manager:Literal(k)] = v
@@ -11661,10 +11825,10 @@ function FastServer:onCompletion(vParams)
 		return nil
 	end
 	local nRetList = {}
-	nFieldCompletion:foreach(function(vKey, vValue)
+	nFieldCompletion:foreach(function(vKey, vKind)
 		nRetList[#nRetList + 1] = {
 			label=vKey,
-			kind=2,
+			kind=vKind,
 		}
 	end)
 	return json.array(nRetList)
@@ -12313,17 +12477,17 @@ local ErrorCodes = {
 	
 		
 		
-	  
 	
 	
 	
 	
-		  
-		  
-		  
-		  
-		  
-		  
+	
+		
+		
+		
+		
+		
+		
 	
 	
 	   
@@ -13573,7 +13737,6 @@ packages['thlua.type.basic.BaseAtomType'] = function (...)
 
 
 local Exception = require "thlua.Exception"
-local FieldCompletion = require "thlua.context.FieldCompletion"
 local OPER_ENUM = require "thlua.type.OPER_ENUM"
 
 local class = require "thlua.class"
@@ -13638,7 +13801,11 @@ end
 
 function BaseAtomType:meta_bop_func(vContext, vOper)
 	if OPER_ENUM.mathematic[vOper] then
-		return false, self._manager.builtin.bop.mathematic
+		if vOper == "/" then
+			return false, self._manager.builtin.bop.mathematic_divide
+		else
+			return false, self._manager.builtin.bop.mathematic_notdiv
+		end
 	elseif OPER_ENUM.bitwise[vOper] then
 		return false, self._manager.builtin.bop.bitwise
 	elseif OPER_ENUM.comparison[vOper] then
@@ -14008,6 +14175,56 @@ return BooleanLiteral
 end end
 --thlua.type.basic.BooleanLiteral end ==========)
 
+--thlua.type.basic.FloatLiteral begin ==========(
+do local _ENV = _ENV
+packages['thlua.type.basic.FloatLiteral'] = function (...)
+
+local OPER_ENUM = require "thlua.type.OPER_ENUM"
+local TYPE_BITS = require "thlua.type.TYPE_BITS"
+local BaseAtomType = require "thlua.type.basic.BaseAtomType"
+local class = require "thlua.class"
+
+
+  
+
+local FloatLiteral = class (BaseAtomType)
+
+function FloatLiteral:ctor(vManager, vLiteral)
+	self.literal=vLiteral
+	self.bits=TYPE_BITS.NUMBER
+end
+
+function FloatLiteral:getLiteral()
+	return self.literal
+end
+
+function FloatLiteral:native_type()
+	return self._manager:Literal("number")
+end
+
+function FloatLiteral:meta_uop_some(vContext, vOper)
+	if vOper == "-" then
+		return self._manager:Literal(-self.literal)
+	elseif vOper == "~" then
+		return self._manager:Literal(~self.literal)
+	else
+		return self._manager.type.Never
+	end
+end
+
+function FloatLiteral:detailString(vCache, vVerbose)
+	return "Literal("..self.literal..")"
+end
+
+function FloatLiteral:isSingleton()
+	return true
+end
+
+return FloatLiteral
+
+end end
+--thlua.type.basic.FloatLiteral end ==========)
+
 --thlua.type.basic.Integer begin ==========(
 do local _ENV = _ENV
 packages['thlua.type.basic.Integer'] = function (...)
@@ -14169,7 +14386,7 @@ end end
 do local _ENV = _ENV
 packages['thlua.type.basic.Number'] = function (...)
 
-local NumberLiteral = require "thlua.type.basic.NumberLiteral"
+local FloatLiteral = require "thlua.type.basic.FloatLiteral"
 local IntegerLiteral = require "thlua.type.basic.IntegerLiteral"
 local Integer = require "thlua.type.basic.Integer"
 local OPER_ENUM = require "thlua.type.OPER_ENUM"
@@ -14202,7 +14419,7 @@ function Number:native_type()
 end
 
 function Number:assumeIncludeAtom(vAssumetSet, vType, _)
-	if NumberLiteral.is(vType) then
+	if FloatLiteral.is(vType) then
 		return self
 	elseif IntegerLiteral.is(vType) then
 		return self
@@ -14223,56 +14440,6 @@ return Number
 
 end end
 --thlua.type.basic.Number end ==========)
-
---thlua.type.basic.NumberLiteral begin ==========(
-do local _ENV = _ENV
-packages['thlua.type.basic.NumberLiteral'] = function (...)
-
-local OPER_ENUM = require "thlua.type.OPER_ENUM"
-local TYPE_BITS = require "thlua.type.TYPE_BITS"
-local BaseAtomType = require "thlua.type.basic.BaseAtomType"
-local class = require "thlua.class"
-
-
-  
-
-local NumberLiteral = class (BaseAtomType)
-
-function NumberLiteral:ctor(vManager, vLiteral)
-	self.literal=vLiteral
-	self.bits=TYPE_BITS.NUMBER
-end
-
-function NumberLiteral:getLiteral()
-	return self.literal
-end
-
-function NumberLiteral:native_type()
-	return self._manager:Literal("number")
-end
-
-function NumberLiteral:meta_uop_some(vContext, vOper)
-	if vOper == "-" then
-		return self._manager:Literal(-self.literal)
-	elseif vOper == "~" then
-		return self._manager:Literal(~self.literal)
-	else
-		return self._manager.type.Never
-	end
-end
-
-function NumberLiteral:detailString(vCache, vVerbose)
-	return "Literal("..self.literal..")"
-end
-
-function NumberLiteral:isSingleton()
-	return true
-end
-
-return NumberLiteral
-
-end end
---thlua.type.basic.NumberLiteral end ==========)
 
 --thlua.type.basic.String begin ==========(
 do local _ENV = _ENV
@@ -16634,7 +16801,7 @@ function OpenTable:putCompletion(vCompletion)
 	if vCompletion:testAndSetPass(self) then
 		self._keyType:foreach(function(vType)
 			if StringLiteral.is(vType) then
-				vCompletion:putPair(vType:getLiteral(), self._fieldDict[vType]:getValueType())
+				vCompletion:putField(vType:getLiteral(), self._fieldDict[vType]:getValueType())
 			end
 		end)
 		local nMetaIndex = self._metaIndex
@@ -16983,7 +17150,7 @@ function SealTable:putCompletion(vCompletion)
 	if vCompletion:testAndSetPass(self) then
 		self._keyType:foreach(function(vAtomType)
 			if StringLiteral.is(vAtomType) then
-				vCompletion:putPair(vAtomType:getLiteral(), self._fieldDict[vAtomType]:getValueType())
+				vCompletion:putField(vAtomType:getLiteral(), self._fieldDict[vAtomType]:getValueType())
 			end
 		end)
 		local nMetaIndex = self._metaIndex
@@ -17388,7 +17555,7 @@ function TypedObject:putCompletion(vCompletion)
 	if vCompletion:testAndSetPass(self) then
 		self._keyRefer:getTypeAwait():foreach(function(vType)
 			if StringLiteral.is(vType) then
-				vCompletion:putPair(vType:getLiteral(), assert(self._valueDict)[vType])
+				vCompletion:putField(vType:getLiteral(), assert(self._valueDict)[vType])
 			end
 		end)
 	end
@@ -17937,6 +18104,102 @@ return IntegerLiteralUnion
 end end
 --thlua.type.union.IntegerLiteralUnion end ==========)
 
+--thlua.type.union.MixingNumberUnion begin ==========(
+do local _ENV = _ENV
+packages['thlua.type.union.MixingNumberUnion'] = function (...)
+
+local FloatLiteral = require "thlua.type.basic.FloatLiteral"
+local Number = require "thlua.type.basic.Number"
+local IntegerLiteral = require "thlua.type.basic.IntegerLiteral"
+local IntegerLiteralUnion = require "thlua.type.union.IntegerLiteralUnion"
+local Integer = require "thlua.type.basic.Integer"
+local Truth = require "thlua.type.basic.Truth"
+local TYPE_BITS = require "thlua.type.TYPE_BITS"
+
+local BaseUnionType = require "thlua.type.union.BaseUnionType"
+local class = require "thlua.class"
+
+  
+
+local MixingNumberUnion = class (BaseUnionType)
+
+function MixingNumberUnion:ctor(vTypeManager)
+	self._floatLiteralSet={}  
+	self._integerPart=false  
+	self.bits=TYPE_BITS.NUMBER
+end
+
+function MixingNumberUnion:updateUnify()
+	local nIntegerPart = self._integerPart
+	if IntegerLiteralUnion.is(nIntegerPart) then
+		self._integerPart = (self._manager:_unifyUnion(nIntegerPart) ) 
+	end
+end
+
+function MixingNumberUnion:putAwait(vType)
+	if FloatLiteral.is(vType) then
+		self._floatLiteralSet[vType] = true
+	elseif Integer.is(vType) then
+		self._integerPart = vType
+	elseif IntegerLiteral.is(vType) then
+		local nIntegerPart = self._integerPart
+		if not nIntegerPart then
+			self._integerPart = vType
+		elseif IntegerLiteral.is(nIntegerPart) then
+			local nIntegerUnion = IntegerLiteralUnion.new(self._manager)
+			nIntegerUnion:putAwait(vType)
+			nIntegerUnion:putAwait(nIntegerPart)
+			self._integerPart = nIntegerUnion
+		elseif IntegerLiteralUnion.is(nIntegerPart) then
+			nIntegerPart:putAwait(vType)
+		elseif Integer.is(nIntegerPart) then
+			 
+		else
+			error("set put wrong")
+		end
+	else
+		error("set put wrong")
+	end
+end
+
+function MixingNumberUnion:assumeIntersectAtom(vAssumeSet, vType)
+	if Number.is(vType) or Truth.is(vType) then
+		return self
+	elseif Integer.is(vType) then
+		return self._integerPart
+	else
+		return self:assumeIncludeAtom(nil, vType)
+	end
+end
+
+function MixingNumberUnion:assumeIncludeAtom(vAssumeSet, vType, _)
+	if FloatLiteral.is(vType) then
+		if self._floatLiteralSet[vType] then
+			return vType
+		else
+			return false
+		end
+	else
+		local nIntegerPart = self._integerPart
+		return nIntegerPart and nIntegerPart:assumeIncludeAtom(vAssumeSet, vType, _)
+	end
+end
+
+function MixingNumberUnion:foreach(vFunc)
+	for nLiteralType, v in pairs(self._floatLiteralSet) do
+		vFunc(nLiteralType)
+	end
+	local nIntegerPart = self._integerPart
+	if nIntegerPart then
+		nIntegerPart:foreach(vFunc)
+	end
+end
+
+return MixingNumberUnion
+
+end end
+--thlua.type.union.MixingNumberUnion end ==========)
+
 --thlua.type.union.Never begin ==========(
 do local _ENV = _ENV
 packages['thlua.type.union.Never'] = function (...)
@@ -17980,102 +18243,6 @@ return Never
 
 end end
 --thlua.type.union.Never end ==========)
-
---thlua.type.union.NumberLiteralUnion begin ==========(
-do local _ENV = _ENV
-packages['thlua.type.union.NumberLiteralUnion'] = function (...)
-
-local NumberLiteral = require "thlua.type.basic.NumberLiteral"
-local Number = require "thlua.type.basic.Number"
-local IntegerLiteral = require "thlua.type.basic.IntegerLiteral"
-local IntegerLiteralUnion = require "thlua.type.union.IntegerLiteralUnion"
-local Integer = require "thlua.type.basic.Integer"
-local Truth = require "thlua.type.basic.Truth"
-local TYPE_BITS = require "thlua.type.TYPE_BITS"
-
-local BaseUnionType = require "thlua.type.union.BaseUnionType"
-local class = require "thlua.class"
-
-  
-
-local NumberLiteralUnion = class (BaseUnionType)
-
-function NumberLiteralUnion:ctor(vTypeManager)
-	self._floatLiteralSet={}  
-	self._integerPart=false  
-	self.bits=TYPE_BITS.NUMBER
-end
-
-function NumberLiteralUnion:updateUnify()
-	local nIntegerPart = self._integerPart
-	if IntegerLiteralUnion.is(nIntegerPart) then
-		self._integerPart = (self._manager:_unifyUnion(nIntegerPart) ) 
-	end
-end
-
-function NumberLiteralUnion:putAwait(vType)
-	if NumberLiteral.is(vType) then
-		self._floatLiteralSet[vType] = true
-	elseif Integer.is(vType) then
-		self._integerPart = vType
-	elseif IntegerLiteral.is(vType) then
-		local nIntegerPart = self._integerPart
-		if not nIntegerPart then
-			self._integerPart = vType
-		elseif IntegerLiteral.is(nIntegerPart) then
-			local nIntegerUnion = IntegerLiteralUnion.new(self._manager)
-			nIntegerUnion:putAwait(vType)
-			nIntegerUnion:putAwait(nIntegerPart)
-			self._integerPart = nIntegerUnion
-		elseif IntegerLiteralUnion.is(nIntegerPart) then
-			nIntegerPart:putAwait(vType)
-		elseif Integer.is(nIntegerPart) then
-			 
-		else
-			error("set put wrong")
-		end
-	else
-		error("set put wrong")
-	end
-end
-
-function NumberLiteralUnion:assumeIntersectAtom(vAssumeSet, vType)
-	if Number.is(vType) or Truth.is(vType) then
-		return self
-	elseif Integer.is(vType) then
-		return self._integerPart
-	else
-		return self:assumeIncludeAtom(nil, vType)
-	end
-end
-
-function NumberLiteralUnion:assumeIncludeAtom(vAssumeSet, vType, _)
-	if NumberLiteral.is(vType) then
-		if self._floatLiteralSet[vType] then
-			return vType
-		else
-			return false
-		end
-	else
-		local nIntegerPart = self._integerPart
-		return nIntegerPart and nIntegerPart:assumeIncludeAtom(vAssumeSet, vType, _)
-	end
-end
-
-function NumberLiteralUnion:foreach(vFunc)
-	for nLiteralType, v in pairs(self._floatLiteralSet) do
-		vFunc(nLiteralType)
-	end
-	local nIntegerPart = self._integerPart
-	if nIntegerPart then
-		nIntegerPart:foreach(vFunc)
-	end
-end
-
-return NumberLiteralUnion
-
-end end
---thlua.type.union.NumberLiteralUnion end ==========)
 
 --thlua.type.union.ObjectUnion begin ==========(
 do local _ENV = _ENV
