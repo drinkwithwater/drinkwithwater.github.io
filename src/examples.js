@@ -24,7 +24,7 @@ takeString(oneInt) -- error, call param not match
 end)
 
 -- @ for type cast
-local k = 231 @ Integer
+local k = 231 @ Number
  */}).toString().slice(14, -3),'1_1_syntax_hint':(function(){/* 
 -- 1.1 The syntaxes of TypeHintLua consist of two parts, one is lua syntax, and the other is also lua syntax.
 
@@ -108,7 +108,7 @@ const s:String = i2s[1]!
 
 
 -- define an auto table, and cast it to a struct
-const dataA:Struct {fds=123, rew="fds"} = {
+const dataA:Struct {fds=123, rew="fds"} = const {
 	fds=123,
 	rew="fds",
 }

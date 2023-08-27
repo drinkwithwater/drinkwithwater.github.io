@@ -392,52 +392,7 @@ end end
 --thlua.boot begin ==========(
 do local _ENV = _ENV
 packages['thlua.boot'] = function (...)
-local ParseEnv = require "thlua.code.ParseEnv"
-
-local boot = {}
-
-boot.path = ""
-
-function boot.compile(chunk, chunkName)
-	return ParseEnv.compile(chunk, chunkName)
-end
-
-function boot.load(chunk, chunkName, ...)
-	local luaCode, err = boot.compile(chunk, chunkName)
-	if not luaCode then
-		return false, err
-	end
-	local f, err = load(luaCode, chunkName, ...)
-	if not f then
-		return false, err
-	end
-	return f
-end
-
-function boot.searcher(name)
-	local fileName, err1 = package.searchpath(name, boot.path)
-	if not fileName then
-		return err1
-	end
-	local file, err2 = io.open(fileName, "r")
-	if not file then
-		return err2
-	end
-	local thluaCode = file:read("*a")
-	file:close()
-	return assert(boot.load(thluaCode, fileName))
-end
-
-local patch = false
-
--- patch for load thlua code in lua
-function boot.patch()
-	if not patch then
-		boot.path = package.path:gsub("[.]lua", ".thlua")
-		table.insert(package.searchers, boot.searcher)
-		patch = true
-	end
-end
+local boot = require "thlua.code.ParseEnv"
 
 -- start check from a main file
 function boot.runCheck(vMainFileName)
@@ -958,6 +913,8 @@ local TableBuilder = {}
 	   
 		
 		
+		
+		
 	
 	    
 
@@ -972,6 +929,7 @@ function TableBuilder.new(vStack,
 	return setmetatable({
 		_stack=vStack,
 		_node=vNode,
+		_isConst=vNode.isConst,
 		_hintInfo=vHintInfo,
 		_pairMaker=vPairMaker,
 		_selfInitDict=false  ,
@@ -992,40 +950,43 @@ function TableBuilder:_build(vNewTable )
 	local nStack = self._stack
 	local nManager = nStack:getTypeManager()
 	local vList, vDotsStart, vDotsTuple = self._pairMaker()
-	local nTermDict  = {}
 	local nTypePairList   = {}
 	for i, nPair in ipairs(vList) do
-		local nKey = nPair[1]:getType()
-		local nTerm = nPair[2]
+		local nKey = nPair.key:getType()
+		local nTerm = nPair.value
 		local nValue = nTerm:getType()
+		if nPair.autoPrimitive and not self._isConst then
+			nValue = self._stack:getTypeManager():literal2Primitive(nValue)
+		end
 		if nKey:isUnion() or not nKey:isSingleton() then
 			nValue = nManager:checkedUnion(nValue, nManager.type.Nil)
 			if OpenTable.is(vNewTable) then
 				self._stack:getRuntime():nodeError(self._node, "open table can only take singleton type as key")
+			else
+				nTypePairList[i] = {nKey, nValue}
 			end
 		else
-			nTermDict[nKey] = nPair[2]
+			nTypePairList[i] = {nKey, nValue}
 		end
-		nTypePairList[i] = {nKey, nValue}
 	end
 	if vDotsTuple then
 		local nTypeTuple = vDotsTuple:checkTypeTuple()
 		local nRepeatType = nTypeTuple:getRepeatType()
 		if nRepeatType then
-			nTypePairList[#nTypePairList + 1] = {
-				nManager.type.Integer, nManager:checkedUnion(nRepeatType, nManager.type.Nil)
-			}
 			if OpenTable.is(vNewTable) then
 				self._stack:getRuntime():nodeError(self._node, "open table can only take singleton type as key")
+			else
+				nTypePairList[#nTypePairList + 1] = {
+					nManager.type.Integer, nManager:checkedUnion(nRepeatType, nManager.type.Nil)
+				}
 			end
 		else
 			for i=1, #nTypeTuple do
 				local nKey = nManager:Literal(vDotsStart + i - 1)
-				local nTerm = assert(vDotsTuple:rawget(i))
+				local nType = assert(vDotsTuple:rawget(i)):getType()
 				nTypePairList[#nTypePairList + 1] = {
-					nKey, nTerm:getType()
+					nKey, nType
 				}
-				nTermDict[nKey] = nTerm
 			end
 		end
 	end
@@ -1039,16 +1000,12 @@ function TableBuilder:_build(vNewTable )
 			end)
 		end
 	end
+	local nKeyUnion, nTypeDict = nManager:typeMapReduce(nTypePairList, function(vList)
+		return nManager:unionReduceType(vList)
+	end)
 	if OpenTable.is(vNewTable) then
-		local nCollection = nManager:TypeCollection()
-		for k,v in pairs(nTermDict) do
-			nCollection:put(k)
-		end
-		vNewTable:initByKeyValueTerm(self._node, self._stack:topBranch(), nCollection:mergeToAtomUnion(), nTermDict)
+		vNewTable:initByBranchKeyValue(self._node, self._stack:topBranch(), nKeyUnion, nTypeDict)
 	else
-		local nKeyUnion, nTypeDict = nManager:typeMapReduce(nTypePairList, function(vList)
-			return nManager:unionReduceType(vList)
-		end)
 		vNewTable:initByKeyValue(self._node, nKeyUnion, nTypeDict)
 	end
 end
@@ -1063,7 +1020,7 @@ function TableBuilder:build()
 	local nManager = nStack:getTypeManager()
 	local nAttrSet = self._hintInfo.attrSet
 	if nAttrSet.class then
-		local nNewTable = assert(nStack:getClassTable(), "only function:class(clazz.) can build table hint with {.class")
+		local nNewTable = assert(nStack:getClassTable(), "only function:class(xxx) can build table hint with {.class")
 		self:_build(nNewTable)
 		return nNewTable
 	else
@@ -1465,6 +1422,15 @@ packages['thlua.code.HintGener'] = function (...)
 
 
 
+local function autoPrimitive(vExpr)
+	local nTag = vExpr.tag
+	if nTag == "String" or nTag == "Number" or nTag == "True" or nTag == "False" then
+		return not vExpr.isConst
+	else
+		return false
+	end
+end
+
 local TagToVisiting = {
 	Chunk=function(self, node)
 		local nInjectNode = node.injectNode
@@ -1638,6 +1604,7 @@ local TagToVisiting = {
 		}
 	end,
 	Local=function(self, node)
+		local nExprList = node[2]
 		return {
 			line=node.l,
 			"local ", self:concatList(node[1], function(i, vNode)
@@ -1650,7 +1617,8 @@ local TagToVisiting = {
 					return "nil"
 				end, ", "),
 			self:concatList(node[1], function(i, vIdent)
-				return self:visitIdentDef(vIdent, "____lo"..i)
+				local nCurExpr = nExprList[i]
+				return self:visitIdentDef(vIdent, "____lo"..i, nil, nCurExpr and autoPrimitive(nCurExpr) or nil)
 			end, " ")
 		}
 	end,
@@ -1758,13 +1726,20 @@ local TagToVisiting = {
 					if i==#node and tailDots then
 						return "nil"
 					else
-						return self:listWrap(
-							self:stkWrap(vTableItem).LITERAL_TERM(tostring(i2i[i])),
-							self:visit(vTableItem)
-						)
+						return self:dictWrap({
+							node=self:codeNode(vTableItem),
+							autoPrimitive=tostring(autoPrimitive(vTableItem)),
+							key=self:stkWrap(vTableItem).LITERAL_TERM(tostring(i2i[i])),
+							value=self:visit(vTableItem)
+						})
 					end
 				else
-					return self:listWrap(self:visit(vTableItem[1]), self:visit(vTableItem[2]))
+					return self:dictWrap({
+						node=self:codeNode(vTableItem),
+						autoPrimitive=tostring(autoPrimitive(vTableItem[2])),
+						key=self:visit(vTableItem[1]),
+						value=self:visit(vTableItem[2])
+					})
 				end
 			end, ",")), tostring(count), tailDots and self:visit(tailDots) or "nil")
 		)
@@ -1911,7 +1886,7 @@ function HintGener:fixIHintSpace(vHintSpace)
 			local nLast = nil
 			for s in string.gmatch(v[1], "[^\n]*") do
 				nLast = {
-					line = true,
+					line =  true,
 					" ", s, " "
 				}
 				nResult[#nResult + 1] = nLast
@@ -1937,13 +1912,14 @@ function HintGener:codeNode(vNode)
 	return "____nodes["..vNode.index.."]"
 end
 
-function HintGener:visitIdentDef(vIdentNode, vValue, vIsParamOrRec)
+function HintGener:visitIdentDef(vIdentNode, vValue, vIsParamOrRec, vAutoPrimitive)
 	local nHintShort = vIdentNode.hintShort
 	return {
 		line=vIdentNode.l,
 		" ", self:stkWrap(vIdentNode).SYMBOL_NEW(
 			string.format("%q", vIdentNode.symbolKind), tostring(vIdentNode.symbolModify or false),
-			vValue, vIsParamOrRec and "nil" or (nHintShort and self:fixIHintSpace(nHintShort) or "nil")
+			vValue, vIsParamOrRec and "nil" or (nHintShort and self:fixIHintSpace(nHintShort) or "nil"),
+			tostring(vAutoPrimitive)
 		)
 	}
 end
@@ -2540,9 +2516,6 @@ local Exception = require "thlua.Exception"
 
   
 	  
-
-
-  
 	  
 
 
@@ -2552,6 +2525,13 @@ local Exception = require "thlua.Exception"
 
 
   
+	  
+	  
+	  
+
+
+  
+	  
 	  
 	  
 	  
@@ -2572,6 +2552,7 @@ local Exception = require "thlua.Exception"
 
   
 	  
+	
 	  
 	   
  
@@ -2729,7 +2710,13 @@ and generates an Abstract Syntax Tree.
 Some code modify from
 https://github.com/andremm/typedlua and https://github.com/Alloyed/lua-lsp
 ]]
-local lpeg = require "lpeg"
+local ok, lpeg = pcall(require, "lpeg")
+if not ok then
+	ok, lpeg = pcall(require, "lulpeg")
+	if not ok then
+		error("lpeg or lulpeg not found")
+	end
+end
 lpeg.setmaxstack(1000)
 lpeg.locale(lpeg)
 
@@ -2903,6 +2890,7 @@ local tagC=setmetatable({
 })
 
 local hintC={
+	-- short hint
 	wrap=function(isStat, pattBegin, pattBody, pattEnd)
 		pattBody = Cenv * pattBody / function(env, ...) return {...} end
 		return Cenv *
@@ -2916,6 +2904,7 @@ local hintC={
 			return nHintSpace
 		end
 	end,
+	-- long hint
 	long=function()
 		local name = tagC.String(vvA.Name)
 		local colonInvoke = name * symbA"(" * vv.ExprListOrEmpty * symbA")";
@@ -2960,15 +2949,16 @@ local hintC={
 			end
 		end
 	end,
-	char=function(char)
-		return lpeg.Cmt(Cenv*Cpos*lpeg.P(char), function(_, i, env, pos)
+	-- string to be true or false
+	take=function(patt)
+		return lpeg.Cmt(Cenv*Cpos*patt*Cpos, function(_, i, env, pos, posEnd)
 			if not env.hinting then
-				env:markDel(pos, pos)
+				env:markDel(pos, posEnd-1)
 				return true
 			else
 				return false
 			end
-		end)
+		end) * vv.Skip
 	end,
 }
 
@@ -3073,7 +3063,9 @@ local G = lpeg.P { "TypeHintLua";
 		return true
 	end);
 
-	NotnilHint = hintC.char("!") * vv.Skip;
+	NotnilHint = hintC.take(lpeg.P("!"));
+
+	ValueConstHint = hintC.take(lpeg.P("const")*-vv.NameRest);
 
 	AtCastHint = hintC.wrap(
 		false,
@@ -3123,9 +3115,7 @@ local G = lpeg.P { "TypeHintLua";
 	end;
 
 	Constructor = (function()
-		local Pair = tagC.Pair(
-          ((symb"[" * vvA.Expr * symbA"]") + tagC.String(vv.Name)) *
-          symb"=" * vv.Expr)
+		local Pair = tagC.Pair(((symb"[" * vvA.Expr * symbA"]") + tagC.String(vv.Name)) * symb"=" * vv.Expr)
 		local Field = Pair + vv.Expr
 		local fieldsep = symb(",") + symb(";")
 		local FieldList = (Field * (fieldsep * Field)^0 * fieldsep^-1)^-1
@@ -3170,13 +3160,18 @@ local G = lpeg.P { "TypeHintLua";
 	end)();
 
 	SimpleExpr = Cpos * (
-						vv.String +
-						tagC.Number(token(vv.Number)) +
+						(vv.ValueConstHint * cc(true) + cc(false)) * (
+							vv.String +
+							tagC.Number(token(vv.Number)) +
+							tagC.False(kw"false") +
+							tagC.True(kw"true") +
+							vv.Constructor
+						)/function(isConst, t)
+							t.isConst = isConst
+							return t
+						end +
 						tagC.Nil(kw"nil") +
-						tagC.False(kw"false") +
-						tagC.True(kw"true") +
 						vv.FuncDef +
-						vv.Constructor +
 						vv.SuffixedExpr +
 						tagC.Dots(symb"...") +
 						vv.EvalExpr
@@ -3500,11 +3495,12 @@ function ParseEnv:genLuaCode()
 	return table.concat(nContents)
 end
 
+local boot = {}
 -- return luacode | false, errmsg
-function ParseEnv.compile(vContent, vChunkName)
+function boot.compile(vContent, vChunkName)
 	vChunkName = vChunkName or "[anonymous script]"
 	local nEnv = ParseEnv.new(vContent)
-	local nAstOrFalse, nEnvOrErr = ParseEnv.parse(vContent)
+	local nAstOrFalse, nEnvOrErr = boot.parse(vContent)
 	if not nAstOrFalse then
 		local nLineNum = select(2, vContent:sub(1, nEnvOrErr.pos):gsub('\n', '\n'))
 		local nMsg = vChunkName..":".. nLineNum .." ".. nEnvOrErr[1]
@@ -3515,7 +3511,7 @@ function ParseEnv.compile(vContent, vChunkName)
 end
 
 -- return false, errorNode | return chunkNode, parseEnv
-function ParseEnv.parse(vContent)
+function boot.parse(vContent)
 	local nEnv = ParseEnv.new(vContent)
 	local nAstOrErr = nEnv:getAstOrErr()
 	if nAstOrErr.tag == "Error" then
@@ -3525,7 +3521,45 @@ function ParseEnv.parse(vContent)
 	end
 end
 
-return ParseEnv
+function boot.load(chunk, chunkName, ...)
+	local luaCode, err = boot.compile(chunk, chunkName)
+	if not luaCode then
+		return false, err
+	end
+	local f, err = load(luaCode, chunkName, ...)
+	if not f then
+		return false, err
+	end
+	return f
+end
+
+boot.path = package.path:gsub("[.]lua", ".thlua")
+
+function boot.searcher(name)
+	local fileName, err1 = package.searchpath(name, boot.path)
+	if not fileName then
+		return err1
+	end
+	local file, err2 = io.open(fileName, "r")
+	if not file then
+		return err2
+	end
+	local thluaCode = file:read("*a")
+	file:close()
+	return assert(boot.load(thluaCode, fileName))
+end
+
+local patch = false
+
+-- patch for load thlua code in lua
+function boot.patch()
+	if not patch then
+		table.insert(package.searchers, boot.searcher)
+		patch = true
+	end
+end
+
+return boot
 
 end end
 --thlua.code.ParseEnv end ==========)
@@ -4958,7 +4992,7 @@ function FieldCompletion:ctor()
 	self._keyToKind = {} 
 end
 
-local LiteralMetaDict  = {
+local LiteralMetaDict  =  {
 	[StringLiteral.meta]= true,
 	[IntegerLiteral.meta]= true,
 	[FloatLiteral.meta]= true,
@@ -5636,13 +5670,8 @@ end
 -- _ENV.pcall = nil
 
 
-function.open _ENV.tonumber(v:Union(String, Number), base)
-    if base == nil then
-        return 0.0@OrNil(Number)
-    else
-        const base:Integer = base
-        return 0@OrNil(Integer)
-    end
+function.open _ENV.tonumber(v:Any, base)
+    return 0.0@OrNil(Number)
 end
 
 function.pass _ENV.tostring(v:Any):Ret(String)
@@ -5730,7 +5759,7 @@ function.pass debug.gethook(co:OrNil(Thread))
 end
 
 
-(@let.WhatOrNil = OrNil("n", "s", "l", "t", "u", "f", "r", "L"))
+(@let.WhatOrNil = OrNil("n", "S", "l", "t", "u", "f", "r", "L"))
 const function.pass _getinfo(f:Union(Integer, AnyFunction), what:WhatOrNil):Ret(DebugInfo) end
 function.open debug.getinfo(coOrF, ...)
     if type(coOrF) == "thread" then
@@ -5805,6 +5834,7 @@ end
 _ENV.debug = debug
 
 ]]
+
 end end
 --thlua.global.debug end ==========)
 
@@ -6576,21 +6606,23 @@ local FalsableUnion = require "thlua.type.union.FalsableUnion"
 	  
 
 
-local FastTypeBitsToTrue = {
+local FastBitsSet = {
 	[TYPE_BITS.NIL]=true,
 	[TYPE_BITS.FALSE]=true,
 	[TYPE_BITS.TRUE]=true,
 	[TYPE_BITS.THREAD]=true,
+	[TYPE_BITS.LIGHTUSERDATA]=true,
 	[TYPE_BITS.TRUTH]=true,
 }
 
-local TrueBitToTrue = {
+local TrueBitSet = {
 	[TYPE_BITS.TRUE]=true,
 	[TYPE_BITS.OBJECT]=true,
 	[TYPE_BITS.FUNCTION]=true,
 	[TYPE_BITS.NUMBER]=true,
 	[TYPE_BITS.STRING]=true,
 	[TYPE_BITS.THREAD]=true,
+	[TYPE_BITS.LIGHTUSERDATA]=true,
 }
 
 local TypeCollection = {}
@@ -6667,6 +6699,8 @@ function TypeCollection:_makeSimpleTrueType(vBit, vSet )
 		nUnionType = FuncUnion.new(self._manager)
 	elseif vBit == TYPE_BITS.THREAD then
 		return self._type.Thread
+	elseif vBit == TYPE_BITS.LIGHTUSERDATA then
+		return self._type.LightUserdata
 	else
 		error("bit can't be="..tostring(vBit))
 	end
@@ -6684,7 +6718,7 @@ function TypeCollection:mergeToAtomUnion()
 		return self._type.Never
 	else
 		              
-		if self._count == 1 or FastTypeBitsToTrue[nBits] then
+		if self._count == 1 or FastBitsSet[nBits] then
 			local nOneType = (next(self._bitsToSet[nBits]))
 			return (assert(nOneType, "logic error when type merge"))
 		end
@@ -6694,12 +6728,12 @@ function TypeCollection:mergeToAtomUnion()
 	    
 	local nTrueBitToType  = {}
 	for nBit, nSet in pairs(self._bitsToSet) do
-		if TrueBitToTrue[nBit] then
+		if TrueBitSet[nBit] then
 			nTrueBitToType[nBit] = self:_makeSimpleTrueType(nBit, nSet)
 		end
 	end
 	local nTrueType = self._type.Never
-	if TrueBitToTrue[nTruableBits] then
+	if TrueBitSet[nTruableBits] then
 		        
 		nTrueType = nTrueBitToType[nTruableBits]
 	elseif nTruableBits == TYPE_BITS.TRUTH then
@@ -6747,6 +6781,7 @@ local Integer = require "thlua.type.basic.Integer"
 local BooleanLiteral= require "thlua.type.basic.BooleanLiteral"
 local Nil = require "thlua.type.basic.Nil"
 local Thread = require "thlua.type.basic.Thread"
+local LightUserdata = require "thlua.type.basic.LightUserdata"
 local Truth = require "thlua.type.basic.Truth"
 local TypedObject = require "thlua.type.object.TypedObject"
 local Struct = require "thlua.type.object.Struct"
@@ -6833,6 +6868,7 @@ function TypeManager.new(
 			Integer = Integer.new(vManager),
 			String = String.new(vManager),
 			Truth = Truth.new(vManager),
+			LightUserdata = LightUserdata.new(vManager),
 			AnyFunction = AnyFunction.new(vManager, vRootNode),
 			Boolean = nil  ,
 			Any = nil  ,
@@ -9817,7 +9853,7 @@ function CompletionRuntime:gotoNodeByParams(vIsLookup, vFileUri, vDirtySplitCode
 			end
 			local nDefineNode = nIdentNode.defineIdent
 			if nDefineNode then
-				return {[nDefineNode]=true}
+				return {[nDefineNode]= true}
 			      
 			end
 		else
@@ -10008,6 +10044,7 @@ local LogicContext = require "thlua.context.LogicContext"
 	  
 
 
+  
 local InstStack = class (BaseStack)
 
 function InstStack:AUTO(vNode)
@@ -10442,7 +10479,7 @@ function InstStack:PARAM_DOTS_UNPACK(
 	end
 end
 
-function InstStack:SYMBOL_NEW(vNode, vKind, vModify, vTermOrNil, vHintType)
+function InstStack:SYMBOL_NEW(vNode, vKind, vModify, vTermOrNil, vHintType, vAutoPrimitive)
 	local nTopBranch = self:topBranch()
 	local nSymbolContext = self:newAssignContext(vNode)
 	local nTerm = vTermOrNil or nSymbolContext:NilTerm()
@@ -10464,7 +10501,7 @@ function InstStack:SYMBOL_NEW(vNode, vKind, vModify, vTermOrNil, vHintType)
 		nTerm = nTermInHolder
 		local nFromType = nTerm:getType()
 		             
-		if vModify and vKind == Enum.SymbolKind_LOCAL then
+		if vKind == Enum.SymbolKind_LOCAL and vAutoPrimitive then
 			local nToType = nSymbolContext:getTypeManager():literal2Primitive(nFromType)
 			if nFromType ~= nToType then
 				nTerm = nSymbolContext:RefineTerm(nToType)
@@ -10962,7 +10999,7 @@ end end
 do local _ENV = _ENV
 packages['thlua.runtime.SeverityEnum'] = function (...)
 
-return {
+return  {
 	Error = 1,
 	Warn = 2,
 	Info = 3,
@@ -11557,7 +11594,7 @@ end
 
 function BaseServer:uriToPath(vUri)
 	local nPath = vUri:gsub("+", ""):gsub("%%(..)", function(c)
-		local num = assert(tonumber(c, 16))
+		local num = (assert(tonumber(c, 16)) ) 
 		local char = string.char(num)
 		return char
 	end)
@@ -11603,8 +11640,8 @@ function BothServer:getInitializeResult()
 	return {
 		capabilities = {
 			textDocumentSync = {
+				change =  2,       
 				openClose = true,
-				change = 2,       
 				save = { includeText = true },
 			},
 			definitionProvider = true,
@@ -11655,8 +11692,8 @@ function FastServer:getInitializeResult()
 	return {
 		capabilities = {
 			textDocumentSync = {
+				change =  2,       
 				openClose = true,
-				change = 2,       
 				save = { includeText = true },
 			},
 			definitionProvider = true,
@@ -11678,13 +11715,13 @@ function FastServer:getInitializeResult()
 end
 
 function FastServer:rerun(vFileUri)
-	local rootFileUri = lpath.isfile(self._rootPath .. "/root.thlua")
+	local rootFileUri = lpath.isfile(self._rootPath .. "/throot.thlua")
 	if not rootFileUri then
 		rootFileUri = vFileUri
-		self:info("root.thlua not found, run single file:", rootFileUri)
+		self:info("throot.thlua not found, run single file:", rootFileUri)
 	else
 		rootFileUri = self:pathToUri(rootFileUri)
-		self:info("root.thlua found:", rootFileUri)
+		self:info("throot.thlua found:", rootFileUri)
 	end
 	local nRuntime=CompletionRuntime.new(self:makeLoader())
 	local ok, exc = nRuntime:pmain(rootFileUri)
@@ -12175,8 +12212,8 @@ function SlowServer:getInitializeResult()
 	return {
 		capabilities = {
 			textDocumentSync = {
+				change =  2,       
 				openClose = true,
-				change = 2,       
 				save = { includeText = true },
 			},
 			referencesProvider = true,
@@ -12265,13 +12302,13 @@ function SlowServer:publishException(vException )
 end
 
 function SlowServer:rerun(vFileUri)
-	local rootFileUri = lpath.isfile(self._rootPath .. "/root.thlua")
+	local rootFileUri = lpath.isfile(self._rootPath .. "/throot.thlua")
 	if not rootFileUri then
 		rootFileUri = vFileUri
-		self:info("root.thlua not found, run single file:", rootFileUri)
+		self:info("throot.thlua not found, run single file:", rootFileUri)
 	else
 		rootFileUri = self:pathToUri(rootFileUri)
-		self:info("root.thlua found:", rootFileUri)
+		self:info("throot.thlua found:", rootFileUri)
 	end
 	local nRuntime=DiagnosticRuntime.new(self:makeLoader())
 	local ok, exc = nRuntime:pmain(rootFileUri)
@@ -13598,7 +13635,8 @@ local TYPE_BITS = {
 	OBJECT = 1 << 5,
 	FUNCTION = 1 << 6,
 	THREAD = 1 << 7,
-	TRUTH = 0xFF-3,
+	LIGHTUSERDATA = 1 << 8,
+	TRUTH = 0x1FF-3,        
 }
 
 return TYPE_BITS
@@ -14327,6 +14365,43 @@ return IntegerLiteral
 
 end end
 --thlua.type.basic.IntegerLiteral end ==========)
+
+--thlua.type.basic.LightUserdata begin ==========(
+do local _ENV = _ENV
+packages['thlua.type.basic.LightUserdata'] = function (...)
+
+local TYPE_BITS = require "thlua.type.TYPE_BITS"
+local BaseAtomType = require "thlua.type.basic.BaseAtomType"
+local class = require "thlua.class"
+
+  
+
+local LightUserdata = class (BaseAtomType)
+
+function LightUserdata:ctor(vManager)
+	self.bits = TYPE_BITS.LIGHTUSERDATA
+end
+
+function LightUserdata:detailString(vToStringCache, vVerbose)
+	return "LightUserdata"
+end
+
+function LightUserdata:native_getmetatable(vContext)
+	return self._manager.type.Nil
+end
+
+function LightUserdata:native_type()
+	return self._manager:Literal("userdata")
+end
+
+function LightUserdata:isSingleton()
+	return false
+end
+
+return LightUserdata
+
+end end
+--thlua.type.basic.LightUserdata end ==========)
 
 --thlua.type.basic.Nil begin ==========(
 do local _ENV = _ENV
@@ -16531,10 +16606,10 @@ function OpenTable:meta_len(vContext)
 	return self._manager.type.Integer
 end
 
-function OpenTable:initByKeyValueTerm(vNode, vBranch, vKeyType, vValueDict )
+function OpenTable:initByBranchKeyValue(vNode, vBranch, vKeyType, vValueDict )
 	self._keyType = vKeyType
 	for k,v in pairs(vValueDict) do
-		self._fieldDict[k] = OpenField.new(vNode, self, k, v:getType(), vBranch)
+		self._fieldDict[k] = OpenField.new(vNode, self, k, v, vBranch)
 	end
 end
 
