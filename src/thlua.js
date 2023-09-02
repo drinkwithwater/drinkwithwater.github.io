@@ -1062,6 +1062,7 @@ local META_FIELD = {
 	__len=1,
 	__bor=1,
 	__band=1,
+	__pairs=1,
 	    
 }
 
@@ -3083,10 +3084,10 @@ local G = lpeg.P { "TypeHintLua";
 		vv.DoStat + vv.ApplyOrAssignStat + throw("StatHintSpace need DoStat or Apply or AssignStat inside"),
 	symbA(")"));
 
-	HintTerm = suffixedExprByPrimary(
+	--[[HintTerm = suffixedExprByPrimary(
 		tagC.HintTerm(hintC.wrap(false, symb("(@") * cc(false), vv.EvalExpr + vv.SuffixedExpr, symbA(")"))) +
 		vv.PrimaryExpr
-	);
+	);]]
 
 	HintPolyParList = Cenv * Cpos * symb("@<") * vvA.Name * (symb"," * vv.Name)^0 * symbA(">") * Cpos / function(env, pos, ...)
 		local l = {...}
@@ -3099,7 +3100,7 @@ local G = lpeg.P { "TypeHintLua";
 	AtPolyHint = hintC.wrap(false, symb("@<") * cc("@<"),
 		vvA.SimpleExpr * (symb"," * vv.SimpleExpr)^0, symbA(">"));
 
-	EvalExpr = tagC.HintEval(symb("$") * vv.EvalBegin * (vv.HintTerm + vvA.SimpleExpr) * vv.EvalEnd);
+	EvalExpr = tagC.HintEval(symb("$") * vv.EvalBegin * vvA.SimpleExpr * vv.EvalEnd);
 
   -- hint & eval end }}}
 
@@ -3470,7 +3471,7 @@ function ParseEnv:genLuaCode()
 				-- 2. replace hint code with space and newline
 				local nFinishPos = nPosToChange[nStartPos]
 				local nHintCode = nSubject:sub(nStartPos, nFinishPos)
-				nContents[#nContents + 1] = nHintCode:gsub("%S", "")
+				nContents[#nContents + 1] = nHintCode:gsub("[^\r\n\t ]", "")
 				nPreFinishPos = nFinishPos
 			--[[elseif type(nChange) == "string" then
 				local nLuaCode = nSubject:sub(nPreFinishPos + 1, nStartPos)
@@ -3500,7 +3501,6 @@ local boot = {}
 -- return luacode | false, errmsg
 function boot.compile(vContent, vChunkName)
 	vChunkName = vChunkName or "[anonymous script]"
-	local nEnv = ParseEnv.new(vContent)
 	local nAstOrFalse, nEnvOrErr = boot.parse(vContent)
 	if not nAstOrFalse then
 		local nLineNum = select(2, vContent:sub(1, nEnvOrErr.pos):gsub('\n', '\n'))
@@ -3522,7 +3522,13 @@ function boot.parse(vContent)
 	end
 end
 
+local load = load
 function boot.load(chunk, chunkName, ...)
+	local f, err = load(chunk, chunkName, ...)
+	if f then
+		-- if lua parse success, just return
+		return f
+	end
 	local luaCode, err = boot.compile(chunk, chunkName)
 	if not luaCode then
 		return false, err
@@ -9131,6 +9137,21 @@ function BaseRuntime:buildSimpleGlobal()
 			vFunc(k,v)
 		end
 	end, "foreachPair")
+	nGlobal.literal=SpaceBuiltin.new(function(vNode, vType)
+		vType = vType:checkAtomUnion()
+		if vType:isUnion() then
+			return nil
+		else
+			if self._manager:isLiteral(vType) then
+				return vType:getLiteral()
+			else
+				return nil
+			end
+		end
+	end, "literal")
+	nGlobal.same=SpaceBuiltin.new(function(vNode, vType1, vType2)
+		return vType1:includeAll(vType2) and vType2:includeAll(vType1) and true or false
+	end, "same")
 	nGlobal.print=SpaceBuiltin.new(function(vNode, ...)
 		self:nodeInfo(vNode, ...)
 	end, "print")
