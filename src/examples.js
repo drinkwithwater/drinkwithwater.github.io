@@ -127,7 +127,7 @@ end
 
 --- 1) gen 'goto continue' & '::continue::' code in loop statement
 for i=1, 5 do
-	for j, _ in ipairs({1,1,1,1,1}) do
+	for j, _ in ipairs({1,1,1,1,1} @ List(Integer)) do
 		if (i+j)%2 == 0 then
 			continue
 		else
@@ -140,7 +140,7 @@ end
 local a = 1000
 local b = 10
 repeat
-	local c = a / 2
+	local c = a // 2
 	a = c
 until c < b
 
