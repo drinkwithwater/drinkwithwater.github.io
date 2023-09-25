@@ -68,6 +68,7 @@ end
 	let.name = namespace()
 
 	name.Node = Struct {
+		data=String,
 		left=name.Node,
 		right=name.Node,
 	}
@@ -76,8 +77,8 @@ end
 	---- get type of variable sth, just like decltype in c++
 	print($sth)
 
-	---- (@SuffixedExpr) can be used after $
-	print($(@A).fds)
+	---- complex expression
+	print($(nil@!name.Node).left.data)
 end)
 
  */}).toString().slice(14, -3),'1_2_syntax_cast':(function(){/* 
