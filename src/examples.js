@@ -122,6 +122,32 @@ const function:class(let.Hello) make(a:Integer, b:String)
 		b=b,
 	}
 end
+ */}).toString().slice(14, -3),'1_3_syntax_contine':(function(){/* 
+-- 1.3 continue
+
+--- 1) gen 'goto continue' & '::continue::' code in loop statement
+for i=1, 5 do
+	for j, _ in ipairs({1,1,1,1,1}) do
+		if (i+j)%2 == 0 then
+			continue
+		else
+			print(i,j)
+		end
+	end
+end
+
+--- 2) always auto gen '::continue::'
+local a = 1000
+local b = 10
+repeat
+	local c = a / 2
+	a = c
+until c < b
+
+--- 3) wrap return with 'do ... end' when loop statement gen
+while false do
+	return 321
+end
  */}).toString().slice(14, -3),'2_1_type_basic':(function(){/* 
 
 -- primitive types
