@@ -12494,7 +12494,7 @@ function Reference:triggerGet(vNode, vKey)
 			error(vNode:toExc("namespace expected here"))
 		end
 	else
-		assert(EasyMapCom.is(nCom), "illegal indexing key")
+		assert(EasyMapCom.is(nCom), vNode:toExc("illegal indexing key"))
 		return nCom:getValue(vNode, vKey)
 	end
 end
@@ -12513,7 +12513,7 @@ function Reference:triggerSet(vNode, vKey, vValue)
 			error(vNode:toExc("namespace expected here"))
 		end
 	else
-		assert(EasyMapCom.is(nCom), "illegal indexing key")
+		assert(EasyMapCom.is(nCom), vNode:toExc("illegal indexing key"))
 		nCom:setValue(vNode, vKey, vValue)
 	end
 end
