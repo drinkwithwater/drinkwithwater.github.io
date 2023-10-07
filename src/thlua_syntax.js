@@ -35,6 +35,7 @@ var language = {
   defaultToken: "",
   tokenPostfix: ".thlua",
   keywords: [
+    "continue",
     "const",
     "let",
     "and",
